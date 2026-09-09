@@ -1,10 +1,5 @@
 # Development
 
-## Branches
-- `main`: stable
-- `dev`: integration
-- Feature branches: `feat/<module>/<name>`
-
 ## Ownership
 - **Developer 1**: ML / Data / Spatial / Graph
 - **Developer 2**: Backend / API / Security

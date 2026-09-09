@@ -12,4 +12,4 @@ See [ARCHITECTURE.md](ARCHITECTURE.md)
 2. Run `docker-compose up -d` to start database, neo4j, frontend, and backend.
 
 ## Team Ownership
-See [DEVELOPMENT.md](DEVELOPMENT.md) for module ownership and branch workflows.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for module ownership.
