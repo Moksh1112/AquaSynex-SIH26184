@@ -1,0 +1,25 @@
+# Architecture
+
+DATA
+↓
+FEATURES
+↓
+MONEY GRAPH
+↓
+SPATIAL + TEMPORAL
+↓
+CANDIDATES
+↓
+ML
+↓
+TOP-5
+↓
+TIME
+↓
+SHAP
+↓
+RISK
+↓
+ALERT
+↓
+DASHBOARD

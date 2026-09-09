@@ -1,0 +1,1 @@
+-- PostGIS queries stub
