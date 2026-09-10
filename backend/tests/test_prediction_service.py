@@ -39,7 +39,7 @@ def test_generate_prediction_valid_case(monkeypatch):
     assert res.case_id == "C-2026-9081"
     assert res.risk == "HIGH"
     assert len(res.predictions) == 2
-    assert res.predictions[0].atm_id == "ATM-184"
+    assert res.predictions[0].atm_id == "ATM-MUM-01"
 
 def test_generate_prediction_invalid_case(monkeypatch):
     """Test that an invalid case raises 404."""

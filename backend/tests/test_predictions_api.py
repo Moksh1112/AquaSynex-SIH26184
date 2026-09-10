@@ -50,7 +50,7 @@ def test_predict_api_valid_case(monkeypatch):
     assert "predictions" in data
     assert "explanation" in data
     assert data["predictions"][0]["rank"] == 1
-    assert data["predictions"][0]["atm_id"] == "ATM-184"
+    assert data["predictions"][0]["atm_id"] == "ATM-MUM-01"
 
 def test_predict_api_invalid_case(monkeypatch):
     """Test POST /predict with an invalid case ID."""

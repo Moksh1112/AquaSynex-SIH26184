@@ -81,13 +81,25 @@ def test_get_case_by_id_mocked(monkeypatch):
 
 
 # --- Tests that REQUIRE PostgreSQL/PostGIS (Blocked) ---
+from tests.db_utils import require_postgres
 
-@pytest.mark.skip(reason="Requires live PostgreSQL/PostGIS environment. Database is not available on this host.")
-def test_get_cases_integration():
+@require_postgres
+def test_get_cases_integration(monkeypatch):
     """Integration test: actual database read."""
-    pass
+    _mock_auth(monkeypatch)
+    res = client.get("/cases", headers=_auth_header())
+    assert res.status_code == 200
+    assert isinstance(res.json(), list)
 
-@pytest.mark.skip(reason="Requires live PostgreSQL/PostGIS environment. Database is not available on this host.")
-def test_get_case_by_id_integration():
+@require_postgres
+def test_get_case_by_id_integration(monkeypatch):
     """Integration test: actual database read for a specific case."""
-    pass
+    _mock_auth(monkeypatch)
+    res = client.get("/cases", headers=_auth_header())
+    assert res.status_code == 200
+    cases = res.json()
+    if cases:
+        case_id = cases[0]["case_id"]
+        res_single = client.get(f"/cases/{case_id}", headers=_auth_header())
+        assert res_single.status_code == 200
+        assert res_single.json()["case_id"] == case_id

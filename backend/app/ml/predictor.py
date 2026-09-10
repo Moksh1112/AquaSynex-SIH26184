@@ -14,7 +14,7 @@ class MockPredictor(Predictor):
         predictions = [
             PredictionItem(
                 rank=1,
-                atm_id="ATM-184",
+                atm_id="ATM-MUM-01",
                 probability=0.82,
                 latitude=19.076,
                 longitude=72.877,
@@ -22,7 +22,7 @@ class MockPredictor(Predictor):
             ),
             PredictionItem(
                 rank=2,
-                atm_id="ATM-092",
+                atm_id="ATM-MUM-02",
                 probability=0.74,
                 latitude=19.081,
                 longitude=72.882,

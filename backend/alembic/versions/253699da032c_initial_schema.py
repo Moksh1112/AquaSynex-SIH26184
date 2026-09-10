@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+import geoalchemy2
 
 
 # revision identifiers, used by Alembic.
@@ -40,7 +41,7 @@ def upgrade() -> None:
     sa.Column('address', sa.String(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_atms_location', 'atms', ['location'], unique=False, postgresql_using='gist')
+    # op.create_index('idx_atms_location', 'atms', ['location'], unique=False, postgresql_using='gist')
     op.create_index(op.f('ix_atms_atm_id'), 'atms', ['atm_id'], unique=True)
     op.create_index(op.f('ix_atms_id'), 'atms', ['id'], unique=False)
     op.create_table('complaints',
@@ -59,7 +60,7 @@ def upgrade() -> None:
     sa.Column('boundary', geoalchemy2.types.Geometry(geometry_type='POLYGON', srid=4326, dimension=2, from_text='ST_GeomFromEWKT', name='geometry'), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_h3_cells_boundary', 'h3_cells', ['boundary'], unique=False, postgresql_using='gist')
+    # op.create_index('idx_h3_cells_boundary', 'h3_cells', ['boundary'], unique=False, postgresql_using='gist')
     op.create_index(op.f('ix_h3_cells_h3_index'), 'h3_cells', ['h3_index'], unique=True)
     op.create_index(op.f('ix_h3_cells_id'), 'h3_cells', ['id'], unique=False)
     op.create_table('users',
@@ -185,14 +186,14 @@ def downgrade() -> None:
     op.drop_table('users')
     op.drop_index(op.f('ix_h3_cells_id'), table_name='h3_cells')
     op.drop_index(op.f('ix_h3_cells_h3_index'), table_name='h3_cells')
-    op.drop_index('idx_h3_cells_boundary', table_name='h3_cells', postgresql_using='gist')
+    # op.drop_index('idx_h3_cells_boundary', table_name='h3_cells', postgresql_using='gist')
     op.drop_table('h3_cells')
     op.drop_index(op.f('ix_complaints_id'), table_name='complaints')
     op.drop_index(op.f('ix_complaints_case_id'), table_name='complaints')
     op.drop_table('complaints')
     op.drop_index(op.f('ix_atms_id'), table_name='atms')
     op.drop_index(op.f('ix_atms_atm_id'), table_name='atms')
-    op.drop_index('idx_atms_location', table_name='atms', postgresql_using='gist')
+    # op.drop_index('idx_atms_location', table_name='atms', postgresql_using='gist')
     op.drop_table('atms')
     op.drop_index(op.f('ix_accounts_id'), table_name='accounts')
     op.drop_index(op.f('ix_accounts_account_number'), table_name='accounts')
