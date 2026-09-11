@@ -20,7 +20,16 @@ def seed_db():
         # Note: In a real db with constraints, you'd delete in reverse order of dependencies.
         # This simple script assumes a fresh DB or handles collisions by checking existence.
         if db.query(Complaint).first():
-            print("Database already seeded. Skipping...")
+            print("Database already seeded. Skipping Postgres seed...")
+            
+            # Sync to Neo4j anyway
+            from app.db.neo4j_session import init_neo4j
+            from app.db.neo4j_sync import sync_to_neo4j
+            print("Initializing Neo4j constraints...")
+            init_neo4j()
+            print("Synchronizing data to Neo4j...")
+            sync_to_neo4j(db)
+            print("Neo4j graph populated!")
             return
 
         # 2. Users
@@ -107,6 +116,17 @@ def seed_db():
         # Commit all synthetic records
         db.commit()
         print("Seed data successfully injected!")
+
+        # 10. Sync to Neo4j
+        from app.db.neo4j_session import init_neo4j
+        from app.db.neo4j_sync import sync_to_neo4j
+        
+        print("Initializing Neo4j constraints...")
+        init_neo4j()
+        
+        print("Synchronizing data to Neo4j...")
+        sync_to_neo4j(db)
+        print("Neo4j graph populated!")
 
     except Exception as e:
         db.rollback()
