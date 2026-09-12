@@ -1,0 +1,3 @@
+case_id,account_id,fraud_amount,timestamp,is_synthetic
+C10231,ACC-09999,100000.0,2026-09-13 20:30:00,True
+C10222,ACC-08888,20000.0,2026-09-13 11:15:00,True
