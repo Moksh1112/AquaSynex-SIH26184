@@ -15,11 +15,13 @@ from ml.explainability.shap_explainer import explain_prediction
 
 class Predictor(ABC):
     @abstractmethod
-    def predict(self, case_id: str) -> PredictResponse:
+    def predict(self, case_id: str, context_data: dict) -> PredictResponse:
         pass
 
 class MockPredictor(Predictor):
-    def predict(self, case_id: str) -> PredictResponse:
+    def predict(self, case_id: str, context_data: dict) -> PredictResponse:
+        # Generate synthetic deterministic mock data
+        # We simulate that the model has identified ATM-184 and ATM-092
         predictions = [
             PredictionItem(
                 rank=1,
@@ -53,7 +55,7 @@ class MockPredictor(Predictor):
         )
 
 class RealPredictor(Predictor):
-    def predict(self, case_id: str) -> PredictResponse:
+    def predict(self, case_id: str, context_data: dict) -> PredictResponse:
         data_dir = get_data_dir()
         artifacts_dir = os.path.join(os.path.dirname(data_dir), "artifacts")
         model_path = os.path.join(artifacts_dir, "xgb_candidate_model.json")
