@@ -16,3 +16,8 @@ build/
 
 # macOS
 .DS_Store
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
