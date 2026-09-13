@@ -64,9 +64,9 @@ def test_patch_alert_status(monkeypatch):
     
     headers = _auth_header()
     
-    res1 = client.patch("/alerts/1/status", json={"status": "IN_PROGRESS"}, headers=headers)
+    res1 = client.patch("/alerts/1/status", json={"status": "ACKNOWLEDGED"}, headers=headers)
     assert res1.status_code == 200
-    assert res1.json()["status"] == "IN_PROGRESS"
+    assert res1.json()["status"] == "ACKNOWLEDGED"
     
     res2 = client.patch("/alerts/99/status", json={"status": "RESOLVED"}, headers=headers)
     assert res2.status_code == 404

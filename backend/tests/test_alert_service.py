@@ -64,8 +64,8 @@ def test_update_alert_valid(monkeypatch):
     from app.crud import crud_alert
     monkeypatch.setattr(crud_alert, "update_alert_status", mock_update)
     
-    updated = update_alert(None, 1, AlertUpdateStatus(status=AlertStatusEnum.IN_PROGRESS))
-    assert updated.status == AlertStatusEnum.IN_PROGRESS
+    updated = update_alert(None, 1, AlertUpdateStatus(status=AlertStatusEnum.ACKNOWLEDGED))
+    assert updated.status == AlertStatusEnum.ACKNOWLEDGED
 
 def test_update_alert_not_found(monkeypatch):
     

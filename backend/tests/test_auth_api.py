@@ -29,7 +29,7 @@ def test_login_api_valid(monkeypatch):
     
     monkeypatch.setattr("app.services.auth_service.get_user_by_username", lambda db, username: mock_user if username == "admin" else None)
     
-    res = client.post("/auth/login", json={"username": "admin", "password": "correct_password"})
+    res = client.post("/auth/login", data={"username": "admin", "password": "correct_password"})
     assert res.status_code == 200
     data = res.json()
     assert "access_token" in data
@@ -38,7 +38,7 @@ def test_login_api_valid(monkeypatch):
 def test_login_api_invalid_username(monkeypatch):
     monkeypatch.setattr("app.services.auth_service.get_user_by_username", lambda db, username: None)
     
-    res = client.post("/auth/login", json={"username": "fake", "password": "pass"})
+    res = client.post("/auth/login", data={"username": "fake", "password": "pass"})
     assert res.status_code == 401
 
 def test_login_api_invalid_password(monkeypatch):
@@ -47,11 +47,11 @@ def test_login_api_invalid_password(monkeypatch):
     
     monkeypatch.setattr("app.services.auth_service.get_user_by_username", lambda db, username: mock_user)
     
-    res = client.post("/auth/login", json={"username": "admin", "password": "wrong"})
+    res = client.post("/auth/login", data={"username": "admin", "password": "wrong"})
     assert res.status_code == 401
 
 def test_login_api_malformed():
-    res = client.post("/auth/login", json={"user": "admin"})
+    res = client.post("/auth/login", data={"user": "admin"})
     assert res.status_code == 422
 
 # --- Unauthenticated access → 401 ---
@@ -121,5 +121,5 @@ def test_investigator_can_mutate_alert(monkeypatch):
     from app.models.alert import Alert
     monkeypatch.setattr(crud_alert, "update_alert_status", lambda db, alert_id, status_in: Alert(id=1, case_id="C-1", priority="P1", status=status_in.status))
     
-    res = client.patch("/alerts/1/status", json={"status": "IN_PROGRESS"}, headers=_auth_header(token))
+    res = client.patch("/alerts/1/status", json={"status": "ACKNOWLEDGED"}, headers=_auth_header(token))
     assert res.status_code == 200

@@ -6,9 +6,7 @@ from enum import Enum
 class AlertStatusEnum(str, Enum):
     OPEN = "OPEN"
     ACKNOWLEDGED = "ACKNOWLEDGED"
-    IN_PROGRESS = "IN_PROGRESS"
     RESOLVED = "RESOLVED"
-    DISMISSED = "DISMISSED"
 
 class AlertBase(BaseModel):
     case_id: str

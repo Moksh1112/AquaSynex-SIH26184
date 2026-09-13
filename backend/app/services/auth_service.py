@@ -2,10 +2,11 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from app.crud.crud_user import get_user_by_username
 from app.core.security import verify_password, create_access_token
-from app.schemas.auth import LoginRequest, TokenResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from app.schemas.auth import TokenResponse
 from app.services.audit_service import log_audit_event
 
-def authenticate_user(db: Session, request: LoginRequest) -> TokenResponse:
+def authenticate_user(db: Session, request: OAuth2PasswordRequestForm) -> TokenResponse:
     user = get_user_by_username(db, request.username)
     if not user:
         log_audit_event(db, action="LOGIN", resource=f"username:{request.username}", status="FAILED")

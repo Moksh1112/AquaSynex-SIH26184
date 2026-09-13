@@ -1,6 +1,17 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
+import { fetchApi } from '../lib/api'
+
+import { Login } from '../components/Login'
+import { Overview } from '../components/Overview'
+import { Cases } from '../components/Cases'
+import { CaseDetail } from '../components/CaseDetail'
+import { GraphPanel } from '../components/GraphPanel'
+import { PredictionPanel } from '../components/PredictionPanel'
+import { MapView } from '../components/MapView'
+import { AlertPanel } from '../components/AlertPanel'
+import { PageHeader } from '../components/ui/PageHeader'
 
 type View = 'overview' | 'cases' | 'case' | 'trail' | 'prediction' | 'map' | 'alerts' | 'audit'
 
@@ -14,71 +25,212 @@ const nav = [
   ['audit', 'Audit Log', '≡'],
 ] as const
 
-const flow = [
-  { label: 'Origin', value: '$420K', name: 'A. Kovacs', place: 'Budapest, HU', tone: 'cyan' },
-  { label: 'Layer 1', value: '$398K', name: 'Northstar Trading', place: 'Tallinn, EE', tone: 'blue' },
-  { label: 'Layer 2', value: '$392K', name: 'M. Holdings Ltd.', place: 'Limassol, CY', tone: 'amber' },
-  { label: 'Destination', value: '$381K', name: 'Vault 7 / Unknown', place: 'Dubai, AE', tone: 'red' },
-]
-
-const cases = [
-  { id: 'C10231', title: 'Project Nightfall', type: 'Layered transfers', risk: 'CRITICAL', amount: '$420,000', owner: 'M. Chen', age: '2h ago' },
-  { id: 'C10229', title: 'Orion Network', type: 'Shell company cluster', risk: 'HIGH', amount: '$1.28M', owner: 'S. Rivera', age: '5h ago' },
-  { id: 'C10218', title: 'Black Sea Corridor', type: 'Trade-based laundering', risk: 'HIGH', amount: '$86,400', owner: 'A. Singh', age: '1d ago' },
-  { id: 'C10197', title: 'Atlas Remittance', type: 'Structuring pattern', risk: 'MEDIUM', amount: '$39,750', owner: 'M. Chen', age: '2d ago' },
-]
-
-function Badge({ children, tone = 'slate' }: { children: React.ReactNode; tone?: string }) {
-  return <span className={`badge badge-${tone.toLowerCase()}`}>{children}</span>
+function Audit() { 
+  return (
+    <>
+      <PageHeader eyebrow="System / Traceability" title="Audit Log" subtitle="Currently, there is no GET /audit backend endpoint to fetch this data." />
+      <div style={{ padding: '2rem', color: '#a1a1aa' }}>Audit logs will appear here once the backend API is connected.</div>
+    </>
+  )
 }
-
-function Stat({ label, value, detail, tone = 'cyan' }: { label: string; value: string; detail: string; tone?: string }) {
-  return <div className="stat"><div className="eyebrow">{label}</div><div className={`stat-value text-${tone}`}>{value}</div><div className="stat-detail">{detail}</div></div>
-}
-
-function PageHeader({ eyebrow, title, subtitle, action }: { eyebrow: string; title: string; subtitle: string; action?: React.ReactNode }) {
-  return <div className="page-header"><div><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{subtitle}</p></div>{action}</div>
-}
-
-function Overview({ setView, setCaseId }: { setView: (v: View) => void; setCaseId: (id: string) => void }) {
-  return <>
-    <PageHeader eyebrow="Operational picture / 09:42 UTC" title="Command Center" subtitle="Real-time intelligence across active financial crime investigations." action={<button className="button button-primary" onClick={() => setView('cases')}>Open case queue <span>→</span></button>} />
-    <div className="stats-grid"><Stat label="Active cases" value="24" detail="+3 since yesterday" /><Stat label="Critical exposure" value="$4.82M" detail="7 cases above threshold" tone="amber" /><Stat label="Alerts today" value="18" detail="5 require review" tone="red" /><Stat label="Model confidence" value="94.6%" detail="Last run 09:38 UTC" tone="blue" /></div>
-    <div className="section-grid">
-      <section className="panel span-2"><div className="panel-head"><div><div className="eyebrow">Priority queue</div><h2>Cases needing attention</h2></div><button className="text-button" onClick={() => setView('cases')}>View all cases →</button></div><div className="case-list">{cases.slice(0, 3).map((item) => <button className="case-row" key={item.id} onClick={() => { setCaseId(item.id); setView('case') }}><div className="risk-mark" data-tone={item.risk.toLowerCase()} /><div className="case-main"><strong>{item.title}</strong><span>{item.id} · {item.type}</span></div><Badge tone={item.risk === 'CRITICAL' ? 'red' : 'amber'}>{item.risk}</Badge><div className="case-amount">{item.amount}<small>{item.age}</small></div><span className="arrow">→</span></button>)}</div></section>
-      <section className="panel"><div className="panel-head"><div><div className="eyebrow">Model signal</div><h2>Risk distribution</h2></div><span className="live-dot">LIVE</span></div><div className="donut-wrap"><div className="donut"><div><strong>72%</strong><span>high risk</span></div></div><div className="legend"><span><i className="dot red" /> Critical <b>7</b></span><span><i className="dot amber" /> High <b>11</b></span><span><i className="dot blue" /> Medium <b>6</b></span></div></div></section>
-      <section className="panel span-2"><div className="panel-head"><div><div className="eyebrow">Network activity</div><h2>Exposure by corridor</h2></div><span className="muted">Last 7 days</span></div><div className="bars">{['EU / UAE', 'Baltics', 'Southeast Asia', 'North America', 'MENA'].map((name, i) => <div className="bar-row" key={name}><span>{name}</span><div className="bar-track"><i style={{ width: `${[92, 68, 51, 38, 24][i]}%` }} /></div><b>{['$2.4M', '$1.7M', '$920K', '$610K', '$380K'][i]}</b></div>)}</div></section>
-      <section className="panel"><div className="panel-head"><div><div className="eyebrow">Activity stream</div><h2>Latest events</h2></div></div><div className="timeline"><span><i className="dot red" /><b>Alert escalated</b><small>C10231 · 3 min ago</small></span><span><i className="dot amber" /><b>New entity linked</b><small>Orion Network · 21 min ago</small></span><span><i className="dot cyan" /><b>Report exported</b><small>C10197 · 46 min ago</small></span><span><i className="dot blue" /><b>Model rerun complete</b><small>All cases · 1h ago</small></span></div></section>
-    </div>
-  </>
-}
-
-function Cases({ setView, setCaseId }: { setView: (v: View) => void; setCaseId: (id: string) => void }) {
-  return <><PageHeader eyebrow="Investigations / Queue" title="Case Files" subtitle="24 active investigations · sorted by predicted financial exposure" action={<button className="button button-primary">+ New case</button>} /><div className="filter-row"><button className="filter active">All cases <b>24</b></button><button className="filter">Critical <b>7</b></button><button className="filter">Assigned to me <b>6</b></button><div className="search">⌕ <input placeholder="Search case ID, entity, corridor" /></div></div><section className="panel table-panel"><table><thead><tr><th>Case</th><th>Risk</th><th>Exposure</th><th>Lead analyst</th><th>Updated</th><th /></tr></thead><tbody>{cases.map((item) => <tr key={item.id} onClick={() => { setCaseId(item.id); setView('case') }}><td><strong>{item.title}</strong><span>{item.id} · {item.type}</span></td><td><Badge tone={item.risk === 'CRITICAL' ? 'red' : item.risk === 'HIGH' ? 'amber' : 'blue'}>{item.risk}</Badge></td><td className="mono">{item.amount}</td><td>{item.owner}</td><td className="muted">{item.age}</td><td className="arrow">→</td></tr>)}</tbody></table></section></>
-}
-
-function CaseDetail({ setView, caseId }: { setView: (v: View) => void; caseId: string }) {
-  return <><div className="breadcrumbs" onClick={() => setView('cases')}>Case Files <span>/</span> {caseId}</div><PageHeader eyebrow="Case C10231 / Open investigation" title="Project Nightfall" subtitle="Cross-border transfer network · opened 12 September 2026" action={<><button className="button button-quiet">Export brief</button><button className="button button-primary" onClick={() => setView('alerts')}>Review alert</button></>} /><div className="case-summary"><div><span className="eyebrow">Predicted exposure</span><strong>$420,000</strong><Badge tone="red">CRITICAL RISK</Badge></div><div><span className="eyebrow">Entities</span><strong>12</strong><small>4 new this run</small></div><div><span className="eyebrow">Transfer layers</span><strong>4</strong><small>Origin → destination</small></div><div><span className="eyebrow">Confidence</span><strong>94.6%</strong><small>Model v2.4.1</small></div></div><div className="section-grid"><section className="panel span-2"><div className="panel-head"><div><div className="eyebrow">Entity graph</div><h2>Money movement overview</h2></div><button className="text-button" onClick={() => setView('trail')}>Open money trail →</button></div><div className="flow">{flow.map((item, i) => <div className="flow-step" key={item.label}><div className={`flow-node ${item.tone}`}><span>{i === 0 ? 'A' : i === 3 ? '?' : '◈'}</span></div><div className="eyebrow">{item.label}</div><strong>{item.value}</strong><span>{item.name}</span><small>{item.place}</small>{i < flow.length - 1 && <div className="flow-line" />}</div>)}</div></section><section className="panel"><div className="eyebrow">Investigation notes</div><h2>Analyst brief</h2><p className="brief">The model identified a high-probability layering pattern across four jurisdictions. The final beneficiary is an unregistered wallet with no corresponding commercial rationale.</p><div className="note"><span>Next action</span><strong>Freeze outgoing transfer</strong><small>Requires supervisor approval</small></div><button className="button button-primary full" onClick={() => setView('prediction')}>View prediction rationale</button></section></div></>
-}
-
-function Trail({ setView }: { setView: (v: View) => void }) {
-  return <><PageHeader eyebrow="C10231 / Transaction graph" title="Money Trail" subtitle="Following the $420,000 movement from origin to final destination." action={<button className="button button-primary" onClick={() => setView('map')}>Open geo view</button>} /><section className="panel trail-panel"><div className="trail-top"><div><div className="eyebrow">Transaction chain</div><h2>Four-layer transfer path</h2></div><div className="trail-meta"><span>Gross flow <b>$420,000</b></span><span>Net destination <b>$381,000</b></span></div></div><div className="large-flow">{flow.map((item, i) => <div className="large-step" key={item.label}><div className={`large-node ${item.tone}`}><span>{i + 1}</span></div><div className="eyebrow">{item.label}</div><h3>{item.name}</h3><strong>{item.value}</strong><p>{item.place}</p><Badge tone={i === 3 ? 'red' : i === 2 ? 'amber' : 'blue'}>{i === 0 ? 'SOURCE' : i === 3 ? 'UNRESOLVED' : 'PASS-THROUGH'}</Badge>{i < 3 && <div className="large-line"><i /></div>}</div>)}</div><div className="transaction-table"><div><span>12 Sep · 09:12</span><b>Wire transfer</b><span>A. Kovacs → Northstar Trading</span><strong>$420,000</strong></div><div><span>12 Sep · 09:18</span><b>Crypto conversion</b><span>Northstar Trading → USDC wallet</span><strong>$398,000</strong></div><div><span>12 Sep · 09:24</span><b>Cross-border settlement</b><span>M. Holdings Ltd. → Vault 7</span><strong>$381,000</strong></div></div></section></>
-}
-
-function Prediction({ setView }: { setView: (v: View) => void }) {
-  return <><PageHeader eyebrow="C10231 / Model output" title="Prediction Rationale" subtitle="Transparent model explanation for the current risk score." action={<button className="button button-primary" onClick={() => setView('alerts')}>Generate alert</button>} /><div className="prediction-grid"><section className="panel score-panel"><div className="eyebrow">Predicted illicit flow</div><div className="score">94.6<span>%</span></div><Badge tone="red">CRITICAL</Badge><div className="confidence"><span>Model confidence</span><strong>High</strong><div><i style={{ width: '94.6%' }} /></div></div><div className="model-foot"><span>Model v2.4.1</span><span>Run 09:38:12 UTC</span></div></section><section className="panel factors"><div className="eyebrow">Feature contribution</div><h2>Why this case scored high</h2>{[['Layer count', '+31.2%', 90, 'red'], ['Jurisdiction risk', '+24.8%', 74, 'amber'], ['Velocity anomaly', '+18.4%', 56, 'amber'], ['Entity opacity', '+12.1%', 42, 'blue'], ['Amount deviation', '+8.1%', 30, 'blue']].map(([name, val, width, tone]) => <div className="factor" key={name as string}><div><span>{name}</span><b className={`text-${tone}`}>{val}</b></div><div className="factor-track"><i className={`fill-${tone}`} style={{ width: `${width}%` }} /></div></div>)}</section></div><section className="panel explanation"><div className="eyebrow">Plain-language explanation</div><h2>Pattern consistent with intentional layering</h2><p>The transaction chain shows rapid movement through entities with limited operating history, across jurisdictions with elevated opacity risk. The model found no matching invoice, payroll, or trade activity to explain the value transfer.</p><div className="explain-tags"><Badge tone="red">Rapid movement</Badge><Badge tone="amber">Opaque entities</Badge><Badge tone="blue">No trade rationale</Badge></div></section></>
-}
-
-function MapView() { return <><PageHeader eyebrow="C10231 / Geospatial analysis" title="Geo Intelligence" subtitle="Jurisdictional view of the Project Nightfall transfer network." action={<button className="button button-quiet">Download map</button>} /><section className="panel map-panel"><div className="map-canvas"><div className="map-grid" /><div className="map-label label-hu">BUDAPEST<span>$420K</span></div><div className="map-label label-ee">TALLINN<span>$398K</span></div><div className="map-label label-cy">LIMASSOL<span>$392K</span></div><div className="map-label label-ae">DUBAI<span>$381K</span></div><svg className="route" viewBox="0 0 800 360" preserveAspectRatio="none" aria-label="Transfer route"><path d="M120 158 C220 80, 300 140, 382 190 S540 230, 678 158" /><path d="M120 158 C220 80, 300 140, 382 190 S540 230, 678 158" className="route-highlight" /></svg><div className="map-watermark">FININT<br />NETWORK MAP</div></div><div className="map-side"><div className="eyebrow">Jurisdiction profile</div><h2>4 countries · 3 risk zones</h2>{[['Hungary', 'Origin entity', 'Elevated', 'amber'], ['Estonia', 'Pass-through', 'Elevated', 'amber'], ['Cyprus', 'Holding layer', 'High', 'red'], ['UAE', 'Final destination', 'Unknown', 'red']].map(([a, b, c, tone]) => <div className="jurisdiction" key={a}><span className={`country-dot ${tone}`} /><div><strong>{a}</strong><small>{b}</small></div><Badge tone={tone}>{c}</Badge></div>)}<div className="map-legend"><span><i className="line solid" /> Transfer path</span><span><i className="line dashed" /> Predicted route</span></div></div></section></> }
-
-function Alerts({ alertCreated, setAlertCreated }: { alertCreated: boolean; setAlertCreated: (v: boolean) => void }) { return <><PageHeader eyebrow="Operations / Risk response" title="Alert Center" subtitle="Review, confirm, and route model-generated alerts." action={alertCreated ? <Badge tone="cyan">ALERT ROUTED</Badge> : undefined} /><section className="alert-layout"><div className="panel alert-card"><div className="alert-banner"><span>!</span><div><Badge tone="red">CRITICAL ALERT</Badge><h2>Project Nightfall requires immediate action</h2><p>Generated from prediction run at 09:38 UTC · confidence 94.6%</p></div></div><div className="alert-details"><div><span className="eyebrow">Recommended action</span><strong>Freeze outgoing transfer</strong><small>Prevent dispersal while investigation is active.</small></div><div><span className="eyebrow">Route to</span><strong>Financial Crimes Supervisor</strong><small>Queue priority: immediate</small></div><div><span className="eyebrow">Evidence bundle</span><strong>14 artifacts attached</strong><small>Transaction graph, model output, geo trace</small></div></div>{alertCreated ? <div className="success-box"><strong>Alert confirmed and routed.</strong><span>Supervisor queue notified · audit event written just now.</span></div> : <button className="button button-primary full" onClick={() => setAlertCreated(true)}>Confirm and route alert</button>}</div><div className="panel"><div className="eyebrow">Open alerts</div><h2>Queue health</h2><div className="queue-number">18</div><p className="muted">alerts generated today</p><div className="queue-row"><span>Awaiting review</span><b>5</b></div><div className="queue-row"><span>In progress</span><b>8</b></div><div className="queue-row"><span>Resolved</span><b>5</b></div></div></section></> }
-
-function Audit() { return <><PageHeader eyebrow="System / Traceability" title="Audit Log" subtitle="Immutable activity record for the investigator workspace." action={<button className="button button-quiet">Export log</button>} /><section className="panel table-panel"><table><thead><tr><th>Timestamp</th><th>Actor</th><th>Action</th><th>Object</th><th>Result</th></tr></thead><tbody>{[['09:42:18', 'M. Chen', 'Alert routed', 'C10231 / Project Nightfall', 'Completed'], ['09:41:02', 'System', 'Prediction generated', 'C10231 · run 2.4.1', 'Completed'], ['09:38:12', 'System', 'Model run completed', '24 active cases', 'Completed'], ['09:17:44', 'M. Chen', 'Case opened', 'C10231 / Project Nightfall', 'Completed'], ['08:55:09', 'S. Rivera', 'Evidence exported', 'C10197 / Atlas Remittance', 'Completed']].map((row) => <tr key={row[0]}>{row.map((cell, i) => <td key={cell} className={i === 0 ? 'mono muted' : i === 4 ? 'text-cyan' : ''}>{cell}</td>)}</tr>)}</tbody></table></section></> }
 
 export default function Page() {
+  const [token, setToken] = useState<string>('')
   const [view, setView] = useState<View>('overview')
-  const [caseId, setCaseId] = useState('C10231')
-  const [alertCreated, setAlertCreated] = useState(false)
+  const [caseId, setCaseId] = useState<string>('')
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
+  
+  // Data State
+  const [backendCases, setBackendCases] = useState<any[]>([])
+  const [loadingCases, setLoadingCases] = useState(false)
+  
+  const [caseDetails, setCaseDetails] = useState<any>(null)
+  const [loadingCaseDetails, setLoadingCaseDetails] = useState(false)
+
+  const [graphData, setGraphData] = useState<any>(null)
+  const [loadingGraph, setLoadingGraph] = useState(false)
+  const [computedFlow, setComputedFlow] = useState<any[]>([])
+  const [computedSteps, setComputedSteps] = useState<any[]>([])
+  
+  const [predictionData, setPredictionData] = useState<any>(null)
+  const [loadingPrediction, setLoadingPrediction] = useState(false)
+  
+  const [locationsData, setLocationsData] = useState<any[]>([])
+  const [loadingLocations, setLoadingLocations] = useState(false)
+
+  const [alertsData, setAlertsData] = useState<any[]>([])
+  const [loadingAlerts, setLoadingAlerts] = useState(false)
+
+  // Fetch initial data (Cases, Locations, Alerts) once authenticated
+  useEffect(() => {
+    if (!token) return
+
+    setLoadingCases(true)
+    fetchApi('/cases', token)
+      .then(data => setBackendCases(data || []))
+      .catch(() => setBackendCases([]))
+      .finally(() => setLoadingCases(false))
+
+    setLoadingLocations(true)
+    fetchApi('/locations', token)
+      .then(data => setLocationsData(data || []))
+      .catch(() => setLocationsData([]))
+      .finally(() => setLoadingLocations(false))
+
+    fetchAlerts()
+  }, [token])
+
+  const fetchAlerts = useCallback(() => {
+    if (!token) return
+    setLoadingAlerts(true)
+    fetchApi('/alerts', token)
+      .then(data => setAlertsData(data || []))
+      .catch(() => setAlertsData([]))
+      .finally(() => setLoadingAlerts(false))
+  }, [token])
+  
+  // Fetch specific case data when caseId changes
+  useEffect(() => {
+    if (!token || !caseId) return
+
+    // Fetch Case Detail
+    setLoadingCaseDetails(true)
+    fetchApi(`/cases/${caseId}`, token)
+      .then(data => setCaseDetails(data))
+      .catch(() => setCaseDetails(null))
+      .finally(() => setLoadingCaseDetails(false))
+
+    // Fetch Graph
+    setLoadingGraph(true)
+        fetchApi(`/graph/${caseId}`, token)
+      .then(data => {
+          setGraphData(data)
+          import('../lib/graph-transform').then(({ transformGraph }) => {
+            const { flow, steps } = transformGraph(data)
+            setComputedFlow(flow)
+            setComputedSteps(steps)
+          })
+      })
+      .catch(() => { setGraphData(null); setComputedFlow([]); setComputedSteps([]) })
+      .finally(() => setLoadingGraph(false))
+
+    // Do NOT automatically fetch/create Prediction here.
+    // Prediction is now triggered manually via runPrediction.
+    setPredictionData(null);
+  }, [token, caseId])
+
+  const runPrediction = useCallback(async () => {
+    if (!token || !caseId) return;
+    setLoadingPrediction(true);
+    try {
+      const data = await fetchApi(`/predict`, token, {
+        method: 'POST',
+        body: JSON.stringify({ case_id: caseId })
+      });
+      setPredictionData(data);
+      // Refresh alerts after prediction to pick up the newly generated alert
+      fetchAlerts();
+    } catch (e: any) {
+      console.error(e);
+      alert(`Failed to run prediction: ${e.message || 'Unknown error'}`);
+    } finally {
+      setLoadingPrediction(false);
+    }
+  }, [token, caseId, fetchAlerts]);
+
   const activeLabel = useMemo(() => nav.find(([key]) => key === view)?.[1] ?? 'Command Center', [view])
-  return <main className="app-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark">◒</div><div><strong>ARGUS</strong><span>FINANCIAL INTELLIGENCE</span></div></div><div className="workspace"><span className="eyebrow">Workspace</span><button><span className="avatar">MC</span><span><strong>Major Crimes Unit</strong><small>Investigator view</small></span><span>⌄</span></button></div><nav>{nav.map(([key, label, icon]) => <button key={key} className={view === key || (key === 'case' && view === 'case') ? 'active' : ''} onClick={() => setView(key as View)}><i>{icon}</i>{label}{key === 'alerts' && <b>5</b>}</button>)}</nav><div className="sidebar-foot"><div className="system-status"><span className="status-pulse" />All systems operational</div><button className="user-row"><span className="avatar">MC</span><span><strong>Maya Chen</strong><small>Senior Investigator</small></span><span>•••</span></button></div></aside><div className="content"><header className="topbar"><div className="crumb"><span>ARGUS</span><b>/</b>{activeLabel}</div><div className="top-actions"><span className="utc"><i className="status-pulse" />LIVE · 09:42 UTC</span><button aria-label="Search">⌕</button><button aria-label="Notifications" onClick={() => setView('alerts')}>◌<b className="notification-count">5</b></button></div></header><div className="page-content">{view === 'overview' && <Overview setView={setView} setCaseId={setCaseId} />}{view === 'cases' && <Cases setView={setView} setCaseId={setCaseId} />}{view === 'case' && <CaseDetail setView={setView} caseId={caseId} />}{view === 'trail' && <Trail setView={setView} />}{view === 'prediction' && <Prediction setView={setView} />}{view === 'map' && <MapView />}{view === 'alerts' && <Alerts alertCreated={alertCreated} setAlertCreated={setAlertCreated} />}{view === 'audit' && <Audit />}</div></div></main>
+
+  const activeAlertsCount = useMemo(() => {
+    return alertsData.filter(a => ['OPEN', 'ACKNOWLEDGED'].includes(a.status)).length;
+  }, [alertsData]);
+  
+  if (!token) return <Login setToken={setToken} />
+  
+  return (
+    <main className="app-shell">
+      <div 
+        className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
+        onClick={() => setIsSidebarOpen(false)}
+        aria-hidden="true"
+      />
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="brand">
+          <div className="brand-mark">◒</div>
+          <div><strong>ARGUS</strong><span>FINANCIAL INTELLIGENCE</span></div>
+        </div>
+        <div className="workspace">
+          <span className="eyebrow">Workspace</span>
+          <button>
+            <span className="avatar">MC</span>
+            <span><strong>Major Crimes Unit</strong><small>Investigator view</small></span>
+            <span>⌄</span>
+          </button>
+        </div>
+        <nav>
+          {nav.map(([key, label, icon]) => (
+            <button 
+              key={key} 
+              className={view === key || (key === 'case' && view === 'case') ? 'active' : ''} 
+              onClick={() => {
+                setView(key as View)
+                setIsSidebarOpen(false)
+              }}
+            >
+              <i>{icon}</i>{label}
+              {key === 'alerts' && activeAlertsCount > 0 && <b>{activeAlertsCount}</b>}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-foot">
+          <div className="system-status"><span className="status-pulse" />All systems operational</div>
+          <button className="user-row">
+            <span className="avatar">MC</span>
+            <span><strong>Maya Chen</strong><small>Senior Investigator</small></span>
+            <span>•••</span>
+          </button>
+        </div>
+      </aside>
+      <div className="content">
+        <header className="topbar">
+          <div className="crumb">
+            <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation">☰</button>
+            <span>ARGUS</span><b>/</b>{activeLabel}
+          </div>
+          <div className="top-actions">
+            <span className="utc"><i className="status-pulse" />LIVE · 09:42 UTC</span>
+            <button aria-label="Search" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>⌕</button>
+            <button aria-label="Notifications" onClick={() => setView('alerts')}>
+              ◌
+              {activeAlertsCount > 0 && <b className="notification-count">{activeAlertsCount}</b>}
+            </button>
+            <button aria-label="Settings" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>⚙</button>
+          </div>
+        </header>
+        <div className="page-content">
+          {view === 'overview' && (
+            <Overview setView={setView} setCaseId={setCaseId} cases={backendCases} alerts={alertsData} loading={loadingCases || loadingAlerts} />
+          )}
+          {view === 'cases' && (
+            <Cases setView={setView} setCaseId={setCaseId} cases={backendCases} loading={loadingCases} />
+          )}
+          {view === 'case' && (
+            <CaseDetail setView={setView} caseId={caseId} caseDetails={caseDetails} loadingCase={loadingCaseDetails} flow={computedFlow} loadingGraph={loadingGraph} />
+          )}
+          {view === 'trail' && (
+            <GraphPanel setView={setView} caseId={caseId} flow={computedFlow} steps={computedSteps} loadingGraph={loadingGraph} />
+          )}
+          {view === 'prediction' && (
+            <PredictionPanel setView={setView} caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} runPrediction={runPrediction} />
+          )}
+          {view === 'map' && (
+            <MapView caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} locationsData={locationsData} />
+          )}
+          {view === 'alerts' && (
+            <AlertPanel token={token} alerts={alertsData} loading={loadingAlerts} refreshAlerts={fetchAlerts} />
+          )}
+          {view === 'audit' && <Audit />}
+        </div>
+      </div>
+    </main>
+  )
 }

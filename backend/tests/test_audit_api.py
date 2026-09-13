@@ -31,7 +31,7 @@ def test_successful_login_audit(monkeypatch, audit_logger):
     mock_user = _mock_user()
     monkeypatch.setattr("app.services.auth_service.get_user_by_username", lambda db, username: mock_user if username == "admin" else None)
     
-    res = client.post("/auth/login", json={"username": "admin", "password": "password"})
+    res = client.post("/auth/login", data={"username": "admin", "password": "password"})
     assert res.status_code == 200
     
     assert len(audit_logger.logs) == 1
@@ -44,7 +44,7 @@ def test_successful_login_audit(monkeypatch, audit_logger):
 def test_failed_login_audit(monkeypatch, audit_logger):
     monkeypatch.setattr("app.services.auth_service.get_user_by_username", lambda db, username: None)
     
-    res = client.post("/auth/login", json={"username": "wronguser", "password": "wrongpassword"})
+    res = client.post("/auth/login", data={"username": "wronguser", "password": "wrongpassword"})
     assert res.status_code == 401
     
     assert len(audit_logger.logs) == 1
@@ -59,7 +59,7 @@ def test_failed_login_wrong_password_audit(monkeypatch, audit_logger):
     mock_user = _mock_user()
     monkeypatch.setattr("app.services.auth_service.get_user_by_username", lambda db, username: mock_user if username == "admin" else None)
     
-    res = client.post("/auth/login", json={"username": "admin", "password": "wrongpassword"})
+    res = client.post("/auth/login", data={"username": "admin", "password": "wrongpassword"})
     assert res.status_code == 401
     
     assert len(audit_logger.logs) == 1
