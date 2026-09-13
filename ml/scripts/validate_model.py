@@ -72,6 +72,20 @@ def main():
         else:
             print("NOTE: ATM-0184 is outside the Top-5.")
     
+    print("\n--- STAGES 3 & 4: TIME-WINDOW & EXPLANATION ---")
+    from ml.prediction.time_window import predict_time_window
+    window = predict_time_window(case_id)
+    print(f"Predicted Time Window for {case_id}: {window}")
+    
+    window_missing = predict_time_window("UNKNOWN_CASE_999")
+    print(f"Predicted Time Window for UNKNOWN_CASE_999: {window_missing}")
+    
+    from ml.explainability.shap_explainer import explain_prediction
+    explanations = explain_prediction(df_ranked.head(5).to_dict('records'))
+    print("\nExplanation for Top Candidate:")
+    for exp in explanations:
+        print(f" - {exp}")
+    
     print("\nRELIABILITY STATEMENT:")
     print("This model is trained on synthetic data for prototype validation and is not production-ready. Real deployment requires real historical labeled data, calibration, monitoring, and retraining.")
 
