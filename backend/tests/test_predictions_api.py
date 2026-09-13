@@ -36,9 +36,12 @@ def test_predict_api_valid_case(monkeypatch):
         pass
 
     from app.services import alert_service
+    from app.ml.predictor import MockPredictor
+    from app.api.routes import predictions
     monkeypatch.setattr(crud_case, "get_case_by_case_id", mock_get_case)
     monkeypatch.setattr(crud_prediction, "create_prediction", mock_create_prediction)
     monkeypatch.setattr(alert_service, "evaluate_and_create_alert", mock_evaluate_alert)
+    monkeypatch.setattr(predictions, "real_predictor", MockPredictor())
     
     response = client.post("/predict", json={"case_id": "C-2026-9081"}, headers=_auth_header())
     

@@ -102,7 +102,6 @@ def test_get_graph_mocked(monkeypatch):
     assert "wd_1" in node_ids
     assert "tx_1" in node_ids
 
-@pytest.mark.skip(reason="Requires live Neo4j environment")
 def test_get_graph_integration():
     """Integration test: actual graph read."""
     res = client.get("/graph/C-2026-9081")

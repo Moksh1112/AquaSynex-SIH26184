@@ -36,11 +36,11 @@ def build_features_for_case(case_id: str, candidate_atms: list, comps, atms, txs
     
     case_wds = wds[(wds['case_id'] == case_id) & (wds['is_fraud'] == 1)]
     if not case_wds.empty:
-        current_time = case_wds['timestamp'].min()
         fraud_atm = case_wds.iloc[0]['atm_id']
     else:
-        current_time = pd.to_datetime(case_comp.iloc[0]['timestamp'])
         fraud_atm = None
+        
+    current_time = pd.to_datetime(case_comp.iloc[0]['timestamp'])
         
     tx_feats = extract_transaction_features(suspect_acc, txs, current_time)
     temp_feats = extract_temporal_features(suspect_acc, txs, wds, current_time)
