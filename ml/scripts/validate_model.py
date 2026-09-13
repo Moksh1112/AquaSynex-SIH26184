@@ -40,9 +40,8 @@ def main():
         print("Feature extraction failed.")
         return
         
-    X = df_feats[feature_cols]
-    probs = model.predict_proba(X)[:, 1]
-    df_feats['probability'] = probs
+    from ml.prediction.predictor import predict_candidates
+    df_feats = predict_candidates(model, df_feats)
     
     valid_probs = df_feats['probability'].between(0, 1).all()
     if valid_probs:
@@ -55,8 +54,9 @@ def main():
     else:
         print("FAIL: ATM-0184 is missing.")
         
-    df_ranked = df_feats.sort_values('probability', ascending=False).reset_index(drop=True)
-    df_ranked['rank'] = df_ranked.index + 1
+    from ml.prediction.ranking import rank_candidates
+    ranked_list = rank_candidates(df_feats)
+    df_ranked = pd.DataFrame(ranked_list)
     
     top5 = df_ranked.head(5)
     print("\n--- TOP 5 RANKED ATMs ---")
