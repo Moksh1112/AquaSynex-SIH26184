@@ -1,8 +1,13 @@
 fastapi
 uvicorn
 pydantic
+pydantic-settings
 sqlalchemy
+alembic
 psycopg2-binary
+GeoAlchemy2
+Shapely
 neo4j
 python-jose
 passlib
+bcrypt<4.1

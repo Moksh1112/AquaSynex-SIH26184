@@ -1,35 +1,30 @@
-from app.schemas.prediction import PredictResponse
+from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from app.crud import crud_case, crud_prediction
+from app.ml.predictor import Predictor
+from app.schemas.prediction import PredictRequest, PredictResponse
+from app.services import alert_service
 
-def get_mock_prediction(case_id: str) -> dict:
-    """
-    Returns a mock prediction complying with the shared API contract.
-    """
-    return {
-        "case_id": case_id,
-        "risk": "HIGH",
-        "time_window": "22:00-23:00",
-        "predictions": [
-            {
-                "rank": 1,
-                "atm_id": "ATM-184",
-                "probability": 0.82,
-                "latitude": 19.076,
-                "longitude": 72.877,
-                "risk": "HIGH"
-            },
-            {
-                "rank": 2,
-                "atm_id": "ATM-092",
-                "probability": 0.74,
-                "latitude": 19.081,
-                "longitude": 72.882,
-                "risk": "HIGH"
-            }
-        ],
-        "explanation": [
-            "High recent transaction velocity",
-            "Similar historical cash-out behaviour",
-            "High-risk connected account",
-            "Short transfer-to-withdrawal interval"
-        ]
+def generate_prediction(db: Session, request: PredictRequest, predictor: Predictor) -> PredictResponse:
+    # 1. Validate case_id exists
+    case = crud_case.get_case_by_case_id(db, case_id=request.case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    
+    # 2. Gather context data (in a real scenario, this fetches accounts, transactions, etc.)
+    context_data = {
+        "description": case.description,
+        "reported_at": case.reported_at.isoformat() if case.reported_at else None
     }
+    
+    # 3. Call predictor
+    prediction_response = predictor.predict(case_id=request.case_id, context_data=context_data)
+    
+    # 4. Persist Prediction and Candidates
+    db_prediction = crud_prediction.create_prediction(db, prediction_response)
+    
+    # 5. Evaluate and trigger alert idempotently
+    alert_service.evaluate_and_create_alert(db, db_prediction)
+    
+    # 6. Return exactly the frozen response
+    return prediction_response
