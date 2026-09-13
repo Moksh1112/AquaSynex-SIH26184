@@ -3,11 +3,11 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.schemas.prediction import PredictRequest, PredictResponse
 from app.services import prediction_service
-from app.ml.predictor import MockPredictor
+from app.ml.predictor import RealPredictor
 from app.models.user import User, RoleEnum
 
 router = APIRouter()
-mock_predictor = MockPredictor()
+real_predictor = RealPredictor()
 
 # Admin, Investigator, Analyst, and Bank Officer can use predictions
 _predict_role = deps.require_role(
@@ -27,7 +27,7 @@ def predict(
     Returns a prediction for the given case_id.
     """
     try:
-        response = prediction_service.generate_prediction(db, request, mock_predictor)
+        response = prediction_service.generate_prediction(db, request, real_predictor)
         from app.services.audit_service import log_audit_event
         log_audit_event(db, action="PREDICT", resource=f"case:{request.case_id}", status="SUCCESS", user_id=current_user.id)
         return response
