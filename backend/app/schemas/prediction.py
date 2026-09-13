@@ -15,6 +15,7 @@ class PredictionItem(BaseModel):
 class PredictResponse(BaseModel):
     case_id: str
     risk: str
-    time_window: str
-    predictions: List[PredictionItem]
-    explanation: List[str]
+    predicted_time_window: str
+    ranked_candidates: List[PredictionItem]
+    explanations: List[str]
+    reliability_statement: str
