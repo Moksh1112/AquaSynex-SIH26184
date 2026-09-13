@@ -8,20 +8,19 @@ def test_predict_valid_case():
     assert response.status_code == 200
     data = response.json()
     assert data["case_id"] == "C10231"
-    assert "predicted_time_window" in data
-    assert "ranked_candidates" in data
-    assert "explanations" in data
-    assert "reliability_statement" in data
+    assert "time_window" in data
+    assert "predictions" in data
+    assert "explanation" in data
     
-    if data["ranked_candidates"]:
-        top = data["ranked_candidates"][0]
+    if data["predictions"]:
+        top = data["predictions"][0]
         assert "rank" in top
         assert "atm_id" in top
         assert top["atm_id"] == "ATM-0184" # Target ATM inclusion
         assert 0.0 <= top["probability"] <= 1.0 # Probabilities between 0 and 1
         
         # Test ranking is sorted correctly
-        ranks = [c["rank"] for c in data["ranked_candidates"]]
+        ranks = [c["rank"] for c in data["predictions"]]
         assert ranks == sorted(ranks)
 
 def test_predict_unknown_case():
@@ -29,6 +28,6 @@ def test_predict_unknown_case():
     assert response.status_code == 200
     data = response.json()
     assert data["case_id"] == "UNKNOWN_999"
-    assert data["predicted_time_window"] == "Insufficient historical data"
-    assert len(data["ranked_candidates"]) == 0
+    assert data["time_window"] == "Insufficient historical data"
+    assert len(data["predictions"]) == 0
 
