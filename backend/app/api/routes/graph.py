@@ -23,16 +23,17 @@ class GraphResponse(BaseModel):
 
 @router.get("/graph/{case_id}", response_model=GraphResponse)
 def get_graph(case_id: str):
-    # Limitation: The case/account relationship is currently not fully normalized in PostgreSQL.
-    # As a result, this endpoint fetches the relevant transaction topology for the seeded scenario
-    # directly from Neo4j without filtering strictly by `case_id` on the relationships.
+    # Enforces case isolation by starting from the specific complaint
+    # and strictly following directed downstream money trail relationships
     query = """
-    MATCH (n)-[r]->(m)
-    WHERE type(r) IN ['TRANSFERRED_TO', 'MADE_WITHDRAWAL', 'AT_ATM', 'INITIATED', 'RECEIVED_BY']
-    RETURN n, r, m
+    MATCH p=(c:Complaint {case_id: $case_id})-[:INVOLVES]->(a:Account)-[*0..4]->(m)
+    WHERE ALL(r IN relationships(p) WHERE type(r) IN ['TRANSFERRED_TO', 'MADE_WITHDRAWAL', 'AT_ATM', 'INITIATED', 'RECEIVED_BY', 'INVOLVES'])
+    UNWIND relationships(p) as r
+    WITH startNode(r) AS n, r, endNode(r) AS m
+    RETURN DISTINCT n, r, m
     """
     
-    results = neo4j_conn.query(query)
+    results = neo4j_conn.query(query, {"case_id": case_id})
     if not results:
         return {"case_id": case_id, "nodes": [], "edges": []}
         

@@ -42,7 +42,8 @@ def seed_db():
             case_id="C-2026-9081",
             description="Victim reported unauthorized transfer of ₹45,000 from their primary account.",
             status="OPEN",
-            reported_at=datetime.utcnow() - timedelta(hours=5)
+            reported_at=datetime.utcnow() - timedelta(hours=5),
+            account_id="V-100200300"
         )
         db.add(complaint)
         db.flush()

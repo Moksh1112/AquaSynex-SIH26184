@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.routes import cases, predictions, locations, graph, alerts, auth, audit, evidence
+from app.api.routes import cases, predictions, locations, graph, alerts, auth, audit, evidence, ncrp, events
 
 api_router = APIRouter()
 api_router.include_router(cases.router, tags=["cases"])
@@ -10,3 +10,5 @@ api_router.include_router(alerts.router, tags=["alerts"])
 api_router.include_router(auth.router, tags=["auth"])
 api_router.include_router(audit.router, tags=["audit"])
 api_router.include_router(evidence.router, tags=["evidence"])
+api_router.include_router(ncrp.router, tags=["ncrp"])
+api_router.include_router(events.router, tags=["events"])

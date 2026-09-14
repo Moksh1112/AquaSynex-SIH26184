@@ -13,7 +13,8 @@ export function CaseDetail({
   caseDetails,
   loadingCase,
   flow, 
-  loadingGraph 
+  loadingGraph,
+  graphData
 }: { 
   token: string;
   setView: (v: string) => void; 
@@ -22,6 +23,7 @@ export function CaseDetail({
   loadingCase: boolean;
   flow: FlowEntity[]; 
   loadingGraph: boolean;
+  graphData: any;
 }) {
   const [evidence, setEvidence] = useState<any[]>([]);
   const [loadingEvidence, setLoadingEvidence] = useState(false);
@@ -133,11 +135,15 @@ export function CaseDetail({
         </div>
         <div>
           <span className="eyebrow">Entities in Graph</span>
-          <strong>{flow.length}</strong>
+          <strong>
+            {loadingGraph ? 'Loading...' : (!graphData ? 'Graph unavailable' : graphData.nodes?.length || 0)}
+          </strong>
         </div>
         <div>
           <span className="eyebrow">Transfer layers</span>
-          <strong>{flow.length > 0 ? flow.length - 1 : 0}</strong>
+          <strong>
+            {loadingGraph ? 'Loading...' : (!graphData ? 'Graph unavailable' : graphData.edges?.length || 0)}
+          </strong>
         </div>
       </div>
       <div className="section-grid">

@@ -18,7 +18,7 @@ def generate_prediction(db: Session, request: PredictRequest, predictor: Predict
     }
 
     # 3. Call predictor
-    prediction_response = predictor.predict(case_id=request.case_id, context_data=context_data)
+    prediction_response = predictor.predict(db=db, case_id=request.case_id, context_data=context_data)
 
     # 4. Persist Prediction and Candidates
     db_prediction = crud_prediction.create_prediction(db, prediction_response)

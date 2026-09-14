@@ -1,24 +1,30 @@
-'use client'
+﻿'use client'
 
 import { PageHeader } from './ui/PageHeader'
 import { Badge } from './ui/Badge'
 import { fetchApi } from '../lib/api'
 import { useState } from 'react'
 
-export function AlertPanel({ 
+export function AlertPanel({
   token,
   alerts,
+  cases,
   loading,
-  refreshAlerts
-}: { 
+  refreshAlerts,
+  setView,
+  setCaseId
+}: {
   token: string;
   alerts: any[];
+  cases: any[];
   loading: boolean;
   refreshAlerts: () => void;
+  setView: (v: any) => void;
+  setCaseId: (id: string) => void;
 }) {
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('OPEN');
-  
+
   const updateStatus = async (alertId: string, status: string) => {
     setActingOn(alertId);
     try {
@@ -48,8 +54,8 @@ export function AlertPanel({
   const acknowledgedAlerts = alerts.filter(a => a.status === 'ACKNOWLEDGED').length;
   const resolvedAlerts = alerts.filter(a => a.status === 'RESOLVED').length;
 
-  const filteredAlerts = filter === 'ALL' 
-    ? alerts 
+  const filteredAlerts = filter === 'ALL'
+    ? alerts
     : alerts.filter(a => a.status === filter);
 
   // Sorting descending by ID (newest first based on DB increment)
@@ -57,10 +63,10 @@ export function AlertPanel({
 
   return (
     <>
-      <PageHeader 
-        eyebrow="Operations / Risk response" 
-        title="Alert Center" 
-        subtitle="Review, confirm, and route model-generated alerts." 
+      <PageHeader
+        eyebrow="Operations / Risk response"
+        title="Alert Center"
+        subtitle="Review, confirm, and route model-generated alerts."
       />
       <section className="alert-layout">
         <div className="panel alert-card">
@@ -70,7 +76,7 @@ export function AlertPanel({
             <button className={`text-button ${filter === 'ACKNOWLEDGED' ? '' : 'muted'}`} onClick={(e) => { e.preventDefault(); setFilter('ACKNOWLEDGED'); }}>ACKNOWLEDGED</button>
             <button className={`text-button ${filter === 'RESOLVED' ? '' : 'muted'}`} onClick={(e) => { e.preventDefault(); setFilter('RESOLVED'); }}>RESOLVED</button>
           </div>
-          
+
           {filteredAlerts.length === 0 ? (
              <div style={{ padding: '2rem', color: '#a1a1aa' }}>No {filter !== 'ALL' ? filter.toLowerCase() : ''} alerts available.</div>
           ) : (
@@ -80,11 +86,25 @@ export function AlertPanel({
                   <span>!</span>
                   <div>
                     <Badge tone={alert.priority === 'CRITICAL' ? 'red' : 'amber'}>{alert.priority} ALERT</Badge>
-                    <h2>Case {alert.case_id} requires review</h2>
+                    <h2
+                      style={{ cursor: 'pointer', textDecoration: 'underline', color: cases.some((c: any) => c.case_id === alert.case_id) ? 'inherit' : '#ef4444' }}
+                      onClick={() => {
+                        if (!cases.some((c: any) => c.case_id === alert.case_id)) {
+                          window.alert(`Case ${alert.case_id} is missing from the queue or restricted.`);
+                          return;
+                        }
+                        setCaseId(alert.case_id);
+                        setView('case');
+                      }}
+                    >
+                      {cases.some((c: any) => c.case_id === alert.case_id)
+                        ? `Case ${alert.case_id} requires review`
+                        : `Orphaned/Restricted Alert: Case ${alert.case_id} missing`}
+                    </h2>
                     <p>Generated {new Date(alert.created_at).toLocaleString()}</p>
                   </div>
                 </div>
-                
+
                 <div className="alert-details" style={{ margin: '0 0 1rem 0' }}>
                   <div>
                     <span className="eyebrow">Status</span>
@@ -109,7 +129,7 @@ export function AlertPanel({
                     </div>
                   )}
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {alert.status === 'OPEN' && (
                     <button className="button button-primary" disabled={actingOn === alert.id} onClick={(e) => { e.preventDefault(); updateStatus(alert.id, 'ACKNOWLEDGED'); }}>
@@ -126,7 +146,7 @@ export function AlertPanel({
             ))
           )}
         </div>
-        
+
         <div className="panel">
           <div className="eyebrow">Open alerts</div>
           <h2>Queue health</h2>
@@ -137,6 +157,6 @@ export function AlertPanel({
           <div className="queue-row"><span>Resolved</span><b>{resolvedAlerts}</b></div>
         </div>
       </section>
-    </> 
+    </>
   )
 }

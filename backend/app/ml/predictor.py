@@ -3,6 +3,7 @@ import pandas as pd
 import xgboost as xgb
 from abc import ABC, abstractmethod
 from typing import List
+from sqlalchemy.orm import Session
 from app.schemas.prediction import PredictResponse, PredictionItem
 
 # Import from ml module
@@ -15,11 +16,11 @@ from ml.explainability.shap_explainer import explain_prediction
 
 class Predictor(ABC):
     @abstractmethod
-    def predict(self, case_id: str, context_data: dict) -> PredictResponse:
+    def predict(self, db: Session, case_id: str, context_data: dict) -> PredictResponse:
         pass
 
 class MockPredictor(Predictor):
-    def predict(self, case_id: str, context_data: dict) -> PredictResponse:
+    def predict(self, db: Session, case_id: str, context_data: dict) -> PredictResponse:
         # Generate synthetic deterministic mock data
         # We simulate that the model has identified ATM-184 and ATM-092
         predictions = [
@@ -55,7 +56,7 @@ class MockPredictor(Predictor):
         )
 
 class RealPredictor(Predictor):
-    def predict(self, case_id: str, context_data: dict) -> PredictResponse:
+    def predict(self, db: Session, case_id: str, context_data: dict) -> PredictResponse:
         data_dir = get_data_dir()
         artifacts_dir = os.path.join(os.path.dirname(data_dir), "artifacts")
         model_path = os.path.join(artifacts_dir, "xgb_candidate_model.json")
@@ -79,11 +80,11 @@ class RealPredictor(Predictor):
         except Exception:
             return fallback_response
             
-        cands = generate_candidates(case_id)
+        cands = generate_candidates(db, case_id)
         if not cands:
             return fallback_response
             
-        df_feats = build_features(case_id, cands)
+        df_feats = build_features(db, case_id, cands)
         if df_feats.empty:
             return fallback_response
             

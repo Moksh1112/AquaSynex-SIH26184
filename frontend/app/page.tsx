@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { fetchApi } from '../lib/api'
@@ -16,13 +16,13 @@ import { PageHeader } from '../components/ui/PageHeader'
 type View = 'overview' | 'cases' | 'case' | 'trail' | 'prediction' | 'map' | 'alerts' | 'audit'
 
 const nav = [
-  ['overview', 'Command Center', '⌂'],
-  ['cases', 'Case Files', '▣'],
-  ['trail', 'Money Trail', '↗'],
-  ['prediction', 'Predictions', '⌁'],
-  ['map', 'Geo Intelligence', '⊙'],
+  ['overview', 'Command Center', 'âŒ‚'],
+  ['cases', 'Case Files', 'â–£'],
+  ['trail', 'Money Trail', 'â†—'],
+  ['prediction', 'Predictions', 'âŒ'],
+  ['map', 'Geo Intelligence', 'âŠ™'],
   ['alerts', 'Alerts', '!'],
-  ['audit', 'Audit Log', '≡'],
+  ['audit', 'Audit Log', 'â‰¡'],
 ] as const
 
 function Audit({ token }: { token: string }) {
@@ -89,11 +89,11 @@ export default function Page() {
   const [view, setView] = useState<View>('overview')
   const [caseId, setCaseId] = useState<string>('')
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
-  
+
   // Data State
   const [backendCases, setBackendCases] = useState<any[]>([])
   const [loadingCases, setLoadingCases] = useState(false)
-  
+
   const [caseDetails, setCaseDetails] = useState<any>(null)
   const [loadingCaseDetails, setLoadingCaseDetails] = useState(false)
 
@@ -101,34 +101,15 @@ export default function Page() {
   const [loadingGraph, setLoadingGraph] = useState(false)
   const [computedFlow, setComputedFlow] = useState<any[]>([])
   const [computedSteps, setComputedSteps] = useState<any[]>([])
-  
+
   const [predictionData, setPredictionData] = useState<any>(null)
   const [loadingPrediction, setLoadingPrediction] = useState(false)
-  
+
   const [locationsData, setLocationsData] = useState<any[]>([])
   const [loadingLocations, setLoadingLocations] = useState(false)
 
   const [alertsData, setAlertsData] = useState<any[]>([])
   const [loadingAlerts, setLoadingAlerts] = useState(false)
-
-  // Fetch initial data (Cases, Locations, Alerts) once authenticated
-  useEffect(() => {
-    if (!token) return
-
-    setLoadingCases(true)
-    fetchApi('/cases', token)
-      .then(data => setBackendCases(data || []))
-      .catch(() => setBackendCases([]))
-      .finally(() => setLoadingCases(false))
-
-    setLoadingLocations(true)
-    fetchApi('/locations', token)
-      .then(data => setLocationsData(data || []))
-      .catch(() => setLocationsData([]))
-      .finally(() => setLoadingLocations(false))
-
-    fetchAlerts()
-  }, [token])
 
   const fetchAlerts = useCallback(() => {
     if (!token) return
@@ -138,7 +119,51 @@ export default function Page() {
       .catch(() => setAlertsData([]))
       .finally(() => setLoadingAlerts(false))
   }, [token])
-  
+
+  // Fetch initial data (Cases, Locations, Alerts) once authenticated
+  const fetchCases = useCallback(() => {
+    setLoadingCases(true)
+    fetchApi('/cases', token)
+      .then(data => setBackendCases(data || []))
+      .catch(() => setBackendCases([]))
+      .finally(() => setLoadingCases(false))
+  }, [token])
+
+  useEffect(() => {
+    if (!token) return
+
+    fetchCases()
+
+    setLoadingLocations(true)
+    fetchApi('/locations', token)
+      .then(data => setLocationsData(data || []))
+      .catch(() => setLocationsData([]))
+      .finally(() => setLoadingLocations(false))
+
+    fetchAlerts()
+
+    // SSE setup
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const eventSource = new EventSource(`${API_URL}/events/stream`);
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'NEW_ALERT') {
+          // Re-fetch alerts to update UI
+          fetchAlerts();
+          // Optional: if we want to immediately navigate or notify based on payload.case_id,
+          // we could do so here, but auto-navigating might disrupt the user.
+        }
+      } catch (e) {
+        console.error("SSE parse error", e);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    }
+  }, [token, fetchAlerts])
+
   // Fetch specific case data when caseId changes
   useEffect(() => {
     if (!token || !caseId) return
@@ -193,19 +218,19 @@ export default function Page() {
   const activeAlertsCount = useMemo(() => {
     return alertsData.filter(a => ['OPEN', 'ACKNOWLEDGED'].includes(a.status)).length;
   }, [alertsData]);
-  
+
   if (!token) return <Login setToken={setToken} />
-  
+
   return (
     <main className="app-shell">
-      <div 
+      <div
         className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
         onClick={() => setIsSidebarOpen(false)}
         aria-hidden="true"
       />
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark">◒</div>
+          <div className="brand-mark">â—’</div>
           <div><strong>ARGUS</strong><span>FINANCIAL INTELLIGENCE</span></div>
         </div>
         <div className="workspace">
@@ -213,14 +238,14 @@ export default function Page() {
           <button>
             <span className="avatar">MC</span>
             <span><strong>Major Crimes Unit</strong><small>Investigator view</small></span>
-            <span>⌄</span>
+            <span>âŒ„</span>
           </button>
         </div>
         <nav>
           {nav.map(([key, label, icon]) => (
-            <button 
-              key={key} 
-              className={view === key || (key === 'case' && view === 'case') ? 'active' : ''} 
+            <button
+              key={key}
+              className={view === key || (key === 'cases' && view === 'case') ? 'active' : ''}
               onClick={() => {
                 setView(key as View)
                 setIsSidebarOpen(false)
@@ -236,47 +261,47 @@ export default function Page() {
           <button className="user-row">
             <span className="avatar">MC</span>
             <span><strong>Maya Chen</strong><small>Senior Investigator</small></span>
-            <span>•••</span>
+            <span>â€¢â€¢â€¢</span>
           </button>
         </div>
       </aside>
       <div className="content">
         <header className="topbar">
           <div className="crumb">
-            <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation">☰</button>
+            <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation">â˜°</button>
             <span>ARGUS</span><b>/</b>{activeLabel}
           </div>
           <div className="top-actions">
-            <span className="utc"><i className="status-pulse" />LIVE · 09:42 UTC</span>
-            <button aria-label="Search" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>⌕</button>
+            <span className="utc"><i className="status-pulse" />LIVE Â· 09:42 UTC</span>
+            <button aria-label="Search" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>âŒ•</button>
             <button aria-label="Notifications" onClick={() => setView('alerts')}>
-              ◌
+              â—Œ
               {activeAlertsCount > 0 && <b className="notification-count">{activeAlertsCount}</b>}
             </button>
-            <button aria-label="Settings" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>⚙</button>
+            <button aria-label="Settings" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>âš™</button>
           </div>
         </header>
         <div className="page-content">
           {view === 'overview' && (
-            <Overview setView={setView} setCaseId={setCaseId} cases={backendCases} alerts={alertsData} loading={loadingCases || loadingAlerts} />
+            <Overview setView={(v: any) => setView(v as View)} setCaseId={setCaseId} cases={backendCases} alerts={alertsData} loading={loadingCases || loadingAlerts} />
           )}
           {view === 'cases' && (
-            <Cases setView={setView} setCaseId={setCaseId} cases={backendCases} loading={loadingCases} />
+            <Cases setView={(v: any) => setView(v as View)} setCaseId={setCaseId} cases={backendCases} loading={loadingCases} token={token} refreshCases={fetchCases} />
           )}
           {view === 'case' && (
-            <CaseDetail token={token} setView={setView} caseId={caseId} caseDetails={caseDetails} loadingCase={loadingCaseDetails} flow={computedFlow} loadingGraph={loadingGraph} />
+            <CaseDetail token={token} setView={(v: any) => setView(v as View)} caseId={caseId} caseDetails={caseDetails} loadingCase={loadingCaseDetails} flow={computedFlow} loadingGraph={loadingGraph} graphData={graphData} />
           )}
           {view === 'trail' && (
-            <GraphPanel setView={setView} caseId={caseId} flow={computedFlow} steps={computedSteps} loadingGraph={loadingGraph} />
+            <GraphPanel setView={(v: any) => setView(v as View)} caseId={caseId} flow={computedFlow} steps={computedSteps} loadingGraph={loadingGraph} graphData={graphData} />
           )}
           {view === 'prediction' && (
-            <PredictionPanel setView={setView} caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} runPrediction={runPrediction} />
+            <PredictionPanel setView={(v: any) => setView(v as View)} caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} runPrediction={runPrediction} />
           )}
           {view === 'map' && (
-            <MapView caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} locationsData={locationsData} />
+            <MapView token={token} caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} locationsData={locationsData} />
           )}
           {view === 'alerts' && (
-            <AlertPanel token={token} alerts={alertsData} loading={loadingAlerts} refreshAlerts={fetchAlerts} />
+            <AlertPanel token={token} alerts={alertsData} cases={backendCases} loading={loadingAlerts} refreshAlerts={fetchAlerts} setView={(v: any) => setView(v as View)} setCaseId={setCaseId} />
           )}
           {view === 'audit' && <Audit token={token} />}
         </div>

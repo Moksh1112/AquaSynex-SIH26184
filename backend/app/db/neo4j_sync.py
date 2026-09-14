@@ -62,6 +62,16 @@ def sync_to_neo4j(db: Session):
             "reported_at": comp.reported_at.isoformat() if comp.reported_at else None
         })
 
+        if comp.account_id:
+            link_query = """
+            MATCH (c:Complaint {case_id: $case_id}), (a:Account {account_number: $acc_num})
+            MERGE (c)-[:INVOLVES]->(a)
+            """
+            neo4j_conn.query(link_query, {
+                "case_id": comp.case_id,
+                "acc_num": comp.account_id
+            })
+
     # 4. Sync Transactions & Relationships
     transactions = db.query(Transaction).all()
     for txn in transactions:

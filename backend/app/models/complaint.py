@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Float
 from datetime import datetime
 import enum
 from app.db.base import Base
@@ -16,3 +16,6 @@ class Complaint(Base):
     description = Column(String, nullable=True)
     status = Column(Enum(ComplaintStatus), default=ComplaintStatus.OPEN)
     reported_at = Column(DateTime, default=datetime.utcnow)
+    account_id = Column(String, nullable=True, index=True)
+    fraud_amount = Column(Float, nullable=True)
+    category = Column(String, default="FINANCIAL_FRAUD")
