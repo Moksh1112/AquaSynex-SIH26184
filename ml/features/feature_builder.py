@@ -14,10 +14,10 @@ def get_data_dir() -> str:
 
 def load_datasets():
     data_dir = get_data_dir()
-    comps = pd.read_csv(os.path.join(data_dir, "complaints.csv"))
+    comps = pd.read_csv(os.path.join(data_dir, "complaints.csv"), dtype={'case_id': str})
     atms = pd.read_csv(os.path.join(data_dir, "atms.csv"))
-    txs = pd.read_csv(os.path.join(data_dir, "transactions.csv"), parse_dates=['timestamp'])
-    wds = pd.read_csv(os.path.join(data_dir, "withdrawals.csv"), parse_dates=['timestamp'])
+    txs = pd.read_csv(os.path.join(data_dir, "transactions.csv"), parse_dates=['timestamp'], dtype={'case_id': str})
+    wds = pd.read_csv(os.path.join(data_dir, "withdrawals.csv"), parse_dates=['timestamp'], dtype={'case_id': str})
     
     # Sort for time-based operations
     txs = txs.sort_values('timestamp')

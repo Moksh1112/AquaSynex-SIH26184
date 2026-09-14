@@ -31,7 +31,7 @@ def predict(
         from app.services.audit_service import log_audit_event
         log_audit_event(db, action="PREDICT", resource=f"case:{request.case_id}", status="SUCCESS", user_id=current_user.id)
         return response
-    except Exception:
+    except Exception as e:
         from app.services.audit_service import log_audit_event
         log_audit_event(db, action="PREDICT", resource=f"case:{request.case_id}", status="FAILED", user_id=current_user.id)
         raise

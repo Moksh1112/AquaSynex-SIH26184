@@ -61,7 +61,8 @@ def explain_prediction(prediction_data):
         top_cand = df.iloc[0]
         atm_id = top_cand.get('atm_id', 'Unknown ATM')
         prob = top_cand.get('probability', 0.0)
-        explanations.append(f"Top candidate ({atm_id}) has a high risk probability of {prob*100:.1f}%.")
+        risk_str = "high risk" if prob > 0.5 else "predicted"
+        explanations.append(f"Top candidate ({atm_id}) has a {risk_str} probability of {prob*100:.1f}%.")
         
         # Top 3 features pushing the prediction higher for the top candidate
         top_cand_shap = shap_vals_target[0]

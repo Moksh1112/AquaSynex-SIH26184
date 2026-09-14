@@ -13,7 +13,26 @@ def create_prediction(db: Session, prediction_data: PredictResponse) -> Predicti
     db.add(db_prediction)
     db.flush() # flush to get db_prediction.id
 
-    # 2. Create PredictionCandidate records
+    # 2. Ensure ATMs exist to avoid ForeignKeyViolation
+    from app.models.atm import ATM
+    added_atms = set()
+    for p in prediction_data.predictions:
+        if p.atm_id in added_atms:
+            continue
+        existing_atm = db.query(ATM).filter(ATM.atm_id == p.atm_id).first()
+        if not existing_atm:
+            new_atm = ATM(
+                atm_id=p.atm_id,
+                latitude=p.latitude,
+                longitude=p.longitude,
+                address="Unknown ATM (Discovered via Prediction)"
+            )
+            db.add(new_atm)
+            added_atms.add(p.atm_id)
+
+    db.flush() # Flush new ATMs
+
+    # 3. Create PredictionCandidate records
     candidates = []
     for p in prediction_data.predictions:
         cand = PredictionCandidate(

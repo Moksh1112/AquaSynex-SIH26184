@@ -19,8 +19,19 @@ def rank_candidates(scores, top_k=None) -> list:
     if 'probability' not in df.columns:
         raise ValueError("Missing 'probability' column. Ensure predict_candidates has been run.")
         
-    # Sort by probability descending
-    df_ranked = df.sort_values(by='probability', ascending=False)
+    # Sort by probability descending, then atm_proximity_score descending, then atm_id ascending
+    sort_cols = ['probability']
+    sort_asc = [False]
+
+    if 'atm_proximity_score' in df.columns:
+        sort_cols.append('atm_proximity_score')
+        sort_asc.append(False)
+
+    if 'atm_id' in df.columns:
+        sort_cols.append('atm_id')
+        sort_asc.append(True)
+
+    df_ranked = df.sort_values(by=sort_cols, ascending=sort_asc)
     
     # Remove duplicate ATMs keeping the one with the highest probability
     if 'atm_id' in df_ranked.columns:

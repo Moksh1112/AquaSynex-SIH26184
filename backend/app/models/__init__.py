@@ -8,3 +8,4 @@ from .h3_cell import H3Cell
 from .prediction import Prediction, PredictionCandidate
 from .alert import Alert, AlertStatus
 from .audit_log import AuditLog
+from .evidence import Evidence

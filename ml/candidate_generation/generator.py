@@ -61,9 +61,9 @@ def generate_candidates_for_case(case_id: str, comps: pd.DataFrame, atms: pd.Dat
 def generate_candidates(case_id: str, k_ring: int = 2) -> list:
     data_dir = get_data_dir()
     try:
-        comps = pd.read_csv(os.path.join(data_dir, "complaints.csv"))
+        comps = pd.read_csv(os.path.join(data_dir, "complaints.csv"), dtype={'case_id': str})
         atms = pd.read_csv(os.path.join(data_dir, "atms.csv"))
-        wds = pd.read_csv(os.path.join(data_dir, "withdrawals.csv"))
+        wds = pd.read_csv(os.path.join(data_dir, "withdrawals.csv"), dtype={'case_id': str})
     except FileNotFoundError:
         return []
     return generate_candidates_for_case(case_id, comps, atms, wds, k_ring)

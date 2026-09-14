@@ -96,6 +96,18 @@ export function AlertPanel({
                       <strong>Prediction #{alert.prediction_id}</strong>
                     </div>
                   )}
+                  {alert.target_stakeholder && (
+                    <div>
+                      <span className="eyebrow">Target Stakeholder</span>
+                      <Badge tone="blue">{alert.target_stakeholder}</Badge>
+                    </div>
+                  )}
+                  {alert.recommended_action && (
+                    <div>
+                      <span className="eyebrow">Recommended Action</span>
+                      <strong>{alert.recommended_action.replace(/_/g, ' ')}</strong>
+                    </div>
+                  )}
                 </div>
                 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>

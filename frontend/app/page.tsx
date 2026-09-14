@@ -25,11 +25,61 @@ const nav = [
   ['audit', 'Audit Log', '≡'],
 ] as const
 
-function Audit() { 
+function Audit({ token }: { token: string }) {
+  const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    setLoading(true)
+    setError(null)
+    fetchApi('/audit', token)
+      .then(data => setLogs(data || []))
+      .catch((err: any) => {
+        const msg = err.message || 'Unknown error occurred'
+        setError(msg)
+      })
+      .finally(() => setLoading(false))
+  }, [token])
+
   return (
     <>
-      <PageHeader eyebrow="System / Traceability" title="Audit Log" subtitle="Currently, there is no GET /audit backend endpoint to fetch this data." />
-      <div style={{ padding: '2rem', color: '#a1a1aa' }}>Audit logs will appear here once the backend API is connected.</div>
+      <PageHeader eyebrow="System / Traceability" title="Audit Log" subtitle="Comprehensive record of system events and actions." />
+      <div className="table-panel panel">
+        {loading ? (
+          <div style={{ padding: '2rem', color: '#a1a1aa' }}>Loading audit records...</div>
+        ) : error ? (
+          <div style={{ padding: '2rem', color: '#ef4444' }}>Failed to load audit logs: {error}</div>
+        ) : logs.length === 0 ? (
+          <div style={{ padding: '2rem', color: '#a1a1aa' }}>No audit records found.</div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>Resource</th>
+                <th>Status</th>
+                <th>User</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id}>
+                  <td>
+                    <strong>{new Date(log.timestamp).toLocaleString()}</strong>
+                  </td>
+                  <td>{log.action}</td>
+                  <td className="mono">{log.resource}</td>
+                  <td>{log.status}</td>
+                  <td>{log.username || (log.user_id ? `ID: ${log.user_id}` : 'System')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </>
   )
 }
@@ -214,7 +264,7 @@ export default function Page() {
             <Cases setView={setView} setCaseId={setCaseId} cases={backendCases} loading={loadingCases} />
           )}
           {view === 'case' && (
-            <CaseDetail setView={setView} caseId={caseId} caseDetails={caseDetails} loadingCase={loadingCaseDetails} flow={computedFlow} loadingGraph={loadingGraph} />
+            <CaseDetail token={token} setView={setView} caseId={caseId} caseDetails={caseDetails} loadingCase={loadingCaseDetails} flow={computedFlow} loadingGraph={loadingGraph} />
           )}
           {view === 'trail' && (
             <GraphPanel setView={setView} caseId={caseId} flow={computedFlow} steps={computedSteps} loadingGraph={loadingGraph} />
@@ -228,7 +278,7 @@ export default function Page() {
           {view === 'alerts' && (
             <AlertPanel token={token} alerts={alertsData} loading={loadingAlerts} refreshAlerts={fetchAlerts} />
           )}
-          {view === 'audit' && <Audit />}
+          {view === 'audit' && <Audit token={token} />}
         </div>
       </div>
     </main>

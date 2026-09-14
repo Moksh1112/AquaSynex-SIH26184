@@ -19,7 +19,7 @@ export function Cases({
       <PageHeader 
         eyebrow="Investigations / Queue" 
         title="Case Files" 
-        subtitle={`${cases.length} active investigations`} 
+        subtitle={`${cases.length} active investigations (Sourced from NCRP Intake)`}
       />
       <div className="filter-row">
         <button className="filter active">All cases <b>{cases.length}</b></button>

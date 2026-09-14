@@ -99,7 +99,7 @@ class RealPredictor(Predictor):
         coords_map = {c['atm_id']: (c.get('latitude', 0.0), c.get('longitude', 0.0)) for c in cands}
         
         predictions = []
-        for cand in ranked_list[:10]:
+        for cand in ranked_list[:5]:
             atm_id = str(cand['atm_id'])
             prob = float(cand['probability'])
             risk_label = "HIGH" if prob > 0.5 else "LOW"

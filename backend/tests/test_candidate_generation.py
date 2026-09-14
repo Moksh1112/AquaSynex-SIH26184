@@ -73,14 +73,23 @@ def test_candidate_syndicate_and_spatial(db_session):
     Test syndicate relationships in Neo4j and spatial fallbacks using temporary data.
     """
     from app.db.neo4j_session import get_neo4j_driver
+    driver = get_neo4j_driver()
+
     cg = CandidateGenerator(db_session)
     
+    import uuid
+    uid = uuid.uuid4().hex[:8]
+    test_x = f"TEST-X-{uid}"
+    test_y = f"TEST-Y-{uid}"
+    atm_syn_id = f"ATM-SYN-{uid}"
+    atm_spa_id = f"ATM-SPA-{uid}"
+
     # 1. Setup Postgres
-    acc_x = Account(account_number="TEST-X", bank_name="Bank X", is_flagged=True)
-    acc_y = Account(account_number="TEST-Y", bank_name="Bank Y", is_flagged=True)
+    acc_x = Account(account_number=test_x, bank_name="Bank X", is_flagged=True)
+    acc_y = Account(account_number=test_y, bank_name="Bank Y", is_flagged=True)
     
-    atm_syn = ATM(atm_id="ATM-SYN", latitude=19.1000, longitude=72.9000, address="Syndicate ATM")
-    atm_spa = ATM(atm_id="ATM-SPA", latitude=19.1010, longitude=72.9010, address="Spatial ATM") # approx 140m away
+    atm_syn = ATM(atm_id=atm_syn_id, latitude=19.1000, longitude=72.9000, address="Syndicate ATM")
+    atm_spa = ATM(atm_id=atm_spa_id, latitude=19.1010, longitude=72.9010, address="Spatial ATM") # approx 140m away
     
     db_session.add_all([acc_x, acc_y, atm_syn, atm_spa])
     db_session.commit()
@@ -88,35 +97,34 @@ def test_candidate_syndicate_and_spatial(db_session):
     t_minus = datetime.utcnow() - timedelta(hours=2)
     cutoff_time = datetime.utcnow()
     
-    w_x = Withdrawal(account_id=acc_x.id, atm_id="ATM-SYN", amount=100, timestamp=t_minus)
+    w_x = Withdrawal(account_id=acc_x.id, atm_id=atm_syn_id, amount=100, timestamp=t_minus)
     db_session.add(w_x)
     db_session.commit()
     
     # 2. Setup Neo4j
-    driver = get_neo4j_driver()
     try:
         with driver.session() as session:
-            session.run("MERGE (x:Account {account_number: 'TEST-X'})")
-            session.run("MERGE (y:Account {account_number: 'TEST-Y'})")
+            session.run("MERGE (x:Account {account_number: $x})", {"x": test_x})
+            session.run("MERGE (y:Account {account_number: $y})", {"y": test_y})
             session.run("MERGE (w:Withdrawal {withdrawal_id: $w_id}) SET w.timestamp=$ts", {"w_id": w_x.id, "ts": t_minus.isoformat()})
-            session.run("MERGE (atm:ATM {atm_id: 'ATM-SYN'})")
+            session.run("MERGE (atm:ATM {atm_id: $atm_id})", {"atm_id": atm_syn_id})
             
             # X transferred to Y
             session.run(
-                "MATCH (x:Account {account_number: 'TEST-X'}), (y:Account {account_number: 'TEST-Y'}) "
+                "MATCH (x:Account {account_number: $x}), (y:Account {account_number: $y}) "
                 "MERGE (x)-[:TRANSFERRED_TO {timestamp: $ts}]->(y)", 
-                {"ts": t_minus.isoformat()}
+                {"x": test_x, "y": test_y, "ts": t_minus.isoformat()}
             )
             # X withdrew at ATM-SYN
             session.run(
-                "MATCH (x:Account {account_number: 'TEST-X'}), (w:Withdrawal {withdrawal_id: $w_id}) "
+                "MATCH (x:Account {account_number: $x}), (w:Withdrawal {withdrawal_id: $w_id}) "
                 "MERGE (x)-[:MADE_WITHDRAWAL]->(w)",
-                {"w_id": w_x.id}
+                {"x": test_x, "w_id": w_x.id}
             )
             session.run(
-                "MATCH (w:Withdrawal {withdrawal_id: $w_id}), (atm:ATM {atm_id: 'ATM-SYN'}) "
+                "MATCH (w:Withdrawal {withdrawal_id: $w_id}), (atm:ATM {atm_id: $atm_id}) "
                 "MERGE (w)-[:AT_ATM]->(atm)",
-                {"w_id": w_x.id}
+                {"w_id": w_x.id, "atm_id": atm_syn_id}
             )
             
         # Target is Y. Y receives from X. X withdrew from ATM-SYN.
@@ -127,21 +135,21 @@ def test_candidate_syndicate_and_spatial(db_session):
         atm_ids = [c.atm_id for c in candidates]
         
         # Syndicate validation
-        assert "ATM-SYN" in atm_ids
-        cand_syn = next(c for c in candidates if c.atm_id == "ATM-SYN")
+        assert atm_syn_id in atm_ids
+        cand_syn = next(c for c in candidates if c.atm_id == atm_syn_id)
         assert "Syndicate" in cand_syn.reasons
         
         # Spatial validation
-        assert "ATM-SPA" in atm_ids
-        cand_spa = next(c for c in candidates if c.atm_id == "ATM-SPA")
+        assert atm_spa_id in atm_ids
+        cand_spa = next(c for c in candidates if c.atm_id == atm_spa_id)
         assert "Spatial" in cand_spa.reasons
         
     finally:
         with driver.session() as session:
-            session.run("MATCH (x:Account {account_number: 'TEST-X'}) DETACH DELETE x")
-            session.run("MATCH (y:Account {account_number: 'TEST-Y'}) DETACH DELETE y")
+            session.run("MATCH (x:Account {account_number: $x}) DETACH DELETE x", {"x": test_x})
+            session.run("MATCH (y:Account {account_number: $y}) DETACH DELETE y", {"y": test_y})
             session.run("MATCH (w:Withdrawal {withdrawal_id: $w_id}) DETACH DELETE w", {"w_id": w_x.id})
-            session.run("MATCH (atm:ATM {atm_id: 'ATM-SYN'}) DETACH DELETE atm")
+            session.run("MATCH (atm:ATM {atm_id: $atm_id}) DETACH DELETE atm", {"atm_id": atm_syn_id})
             
         db_session.delete(w_x)
         db_session.delete(acc_x)

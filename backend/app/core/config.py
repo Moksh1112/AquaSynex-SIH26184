@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     NEO4J_PASSWORD: str = "password"
     JWT_SECRET: str = "secret"
     API_URL: str = "http://localhost:8000"
+    EVIDENCE_STORAGE_DIR: str = "evidence_storage"
 
     model_config = SettingsConfigDict(env_file=(".env", "../.env"), env_file_encoding="utf-8", extra="ignore")
 

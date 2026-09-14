@@ -55,6 +55,9 @@ def test_feature_engineering_no_leakage(db_session):
 
 def test_c2026_9081_validation(db_session):
     """Verify features right before the actual withdrawal occurs in seed data."""
+    from app.db.neo4j_session import get_neo4j_driver
+    driver = get_neo4j_driver()
+
     fe = FeatureEngineer(db_session)
     
     mule2 = db_session.query(Account).filter(Account.account_number == "M-555444333").first()
@@ -123,44 +126,51 @@ def test_upstream_account_count_leakage(db_session):
     upstream_account_count for B MUST be 1.
     """
     from app.db.neo4j_session import get_neo4j_driver
+    driver = get_neo4j_driver()
+
     fe = FeatureEngineer(db_session)
-    
+
+    import uuid
+    uid = uuid.uuid4().hex[:8]
+    test_a = f"TEST-A-{uid}"
+    test_b = f"TEST-B-{uid}"
+    test_c = f"TEST-C-{uid}"
+
     # 1. Create temporary accounts in Postgres
-    acc_a = Account(account_number="TEST-A", bank_name="Bank A")
-    acc_b = Account(account_number="TEST-B", bank_name="Bank B")
-    acc_c = Account(account_number="TEST-C", bank_name="Bank C")
+    acc_a = Account(account_number=test_a, bank_name="Bank A")
+    acc_b = Account(account_number=test_b, bank_name="Bank B")
+    acc_c = Account(account_number=test_c, bank_name="Bank C")
     db_session.add_all([acc_a, acc_b, acc_c])
     db_session.commit()
-    
+
     cutoff_time = datetime.utcnow()
     t_minus = cutoff_time - timedelta(hours=1)
     t_plus = cutoff_time + timedelta(hours=1)
-    
-    driver = get_neo4j_driver()
+
     try:
         # 2. Setup Neo4j state directly for A -> B and C -> B
         with driver.session() as session:
             # Create nodes
-            session.run("MERGE (a:Account {account_number: 'TEST-A'})")
-            session.run("MERGE (b:Account {account_number: 'TEST-B'})")
-            session.run("MERGE (c:Account {account_number: 'TEST-C'})")
+            session.run("MERGE (a:Account {account_number: $a})", {"a": test_a})
+            session.run("MERGE (b:Account {account_number: $b})", {"b": test_b})
+            session.run("MERGE (c:Account {account_number: $c})", {"c": test_c})
             
             # Create past relationship (A -> B)
             session.run(
                 """
-                MATCH (a:Account {account_number: 'TEST-A'}), (b:Account {account_number: 'TEST-B'})
+                MATCH (a:Account {account_number: $a}), (b:Account {account_number: $b})
                 MERGE (a)-[r:TRANSFERRED_TO {test: true, timestamp: $ts}]->(b)
                 """, 
-                {"ts": t_minus.isoformat()}
+                {"a": test_a, "b": test_b, "ts": t_minus.isoformat()}
             )
             
             # Create future relationship (C -> B)
             session.run(
                 """
-                MATCH (c:Account {account_number: 'TEST-C'}), (b:Account {account_number: 'TEST-B'})
+                MATCH (c:Account {account_number: $c}), (b:Account {account_number: $b})
                 MERGE (c)-[r:TRANSFERRED_TO {test: true, timestamp: $ts}]->(b)
                 """, 
-                {"ts": t_plus.isoformat()}
+                {"c": test_c, "b": test_b, "ts": t_plus.isoformat()}
             )
             
         # 3. Test Feature Generation at Cutoff T
@@ -172,9 +182,9 @@ def test_upstream_account_count_leakage(db_session):
     finally:
         # Cleanup Neo4j
         with driver.session() as session:
-            session.run("MATCH (a:Account {account_number: 'TEST-A'}) DETACH DELETE a")
-            session.run("MATCH (b:Account {account_number: 'TEST-B'}) DETACH DELETE b")
-            session.run("MATCH (c:Account {account_number: 'TEST-C'}) DETACH DELETE c")
+            session.run("MATCH (a:Account {account_number: $a}) DETACH DELETE a", {"a": test_a})
+            session.run("MATCH (b:Account {account_number: $b}) DETACH DELETE b", {"b": test_b})
+            session.run("MATCH (c:Account {account_number: $c}) DETACH DELETE c", {"c": test_c})
             
         # Cleanup Postgres
         db_session.delete(acc_a)
