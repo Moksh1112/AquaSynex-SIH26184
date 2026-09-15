@@ -84,7 +84,7 @@ def test_get_graph_mocked(monkeypatch):
         
     from app.api.routes import graph
     class MockNeo4jConn:
-        def query(self, q):
+        def query(self, q, params=None, *args, **kwargs):
             return mock_query(q)
             
     monkeypatch.setattr(graph, "neo4j_conn", MockNeo4jConn())

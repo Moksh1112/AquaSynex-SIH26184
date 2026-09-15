@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
@@ -138,55 +138,50 @@ export function MapView({
            </>
          )}
       </div>
-      <section className="panel map-panel" style={{ display: 'flex' }}>
-        {mapMode === 'GLOBAL' && loadingHeatmap ? (
-          <div style={{ padding: '2rem' }}>Loading heatmap data from backend...</div>
-        ) : mapMode === 'CASE' && loadingPrediction ? (
-          <div style={{ padding: '2rem' }}>Loading case prediction from backend...</div>
-        ) : (!currentLocations || currentLocations.length === 0) ? (
-          <div style={{ padding: '2rem', color: '#a1a1aa' }}>No locations available for this view.</div>
-        ) : (
-          <>
-            <div className="map-canvas" style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}>
-              <MapClient
-                predictionData={activePredictionData}
-                locationsData={locationsData}
-                selectedAtmId={selectedAtmId}
-              />
-            </div>
-            <div className="map-side" style={{ flexShrink: 0, width: '300px', overflowY: 'auto' }}>
-              <div className="eyebrow">{mapMode === 'CASE' ? 'Case Intelligence' : 'Global Risk View'}</div>
-              <h2>{currentLocations.length} Matching Locations</h2>
-              {currentLocations.length > 0 ? (
-                currentLocations.map((h: any, idx: number) => (
-                  <div
-                    className="jurisdiction"
-                    key={`${h.atm_id}-${idx}`}
-                    onClick={() => setSelectedAtmId(h.atm_id)}
-                    style={{
-                      cursor: 'pointer',
-                      backgroundColor: selectedAtmId === h.atm_id ? 'rgba(255,255,255,0.1)' : 'transparent',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      marginBottom: '8px',
-                      border: selectedAtmId === h.atm_id ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent'
-                    }}
-                  >
-                    <span className={`country-dot ${h.risk_level === 'HIGH' ? 'red' : 'amber'}`} />
-                    <div>
-                      <strong>{h.atm_id}</strong>
-                      <small style={{ display: 'block' }}>{h.lat}, {h.lng}</small>
-                      <small style={{ display: 'block', color: '#71717a' }}>{h.crime_category}</small>
-                    </div>
-                    <Badge tone={h.risk_level === 'HIGH' ? 'red' : 'amber'}>{h.risk_level || 'N/A'}</Badge>
-                  </div>
-                ))
-              ) : (
-                <div style={{ color: '#a1a1aa', marginTop: '1rem' }}>No matching heatmap data.</div>
-              )}
-            </div>
-          </>
-        )}
+      <section className="panel map-panel">
+        <div className="map-canvas" style={{ position: 'relative', overflow: 'hidden' }}>
+          {mapMode === 'GLOBAL' && loadingHeatmap ? (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading heatmap data from backend...</div>
+          ) : mapMode === 'CASE' && loadingPrediction ? (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading case prediction from backend...</div>
+          ) : null}
+          <MapClient
+            predictionData={activePredictionData}
+            locationsData={locationsData}
+            selectedAtmId={selectedAtmId}
+          />
+        </div>
+        <div className="map-side" style={{ overflowY: 'auto' }}>
+          <div className="eyebrow">{mapMode === 'CASE' ? 'Case Intelligence' : 'Global Risk View'}</div>
+          <h2>{currentLocations?.length || 0} Matching Locations</h2>
+          {(!currentLocations || currentLocations.length === 0) ? (
+            <div style={{ color: '#a1a1aa', marginTop: '1rem' }}>No locations available for this view.</div>
+          ) : (
+            currentLocations.map((h: any, idx: number) => (
+              <div
+                className="jurisdiction"
+                key={`${h.atm_id}-${idx}`}
+                onClick={() => setSelectedAtmId(h.atm_id)}
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedAtmId === h.atm_id ? 'rgba(0,0,0,0.05)' : 'transparent',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  marginBottom: '8px',
+                  border: selectedAtmId === h.atm_id ? '1px solid rgba(0,0,0,0.1)' : '1px solid transparent'
+                }}
+              >
+                <span className={`country-dot ${h.risk_level === 'HIGH' ? 'red' : 'amber'}`} />
+                <div>
+                  <strong>{h.atm_id}</strong>
+                  <small style={{ display: 'block' }}>{h.lat}, {h.lng}</small>
+                  <small style={{ display: 'block', color: '#71717a' }}>{h.crime_category}</small>
+                </div>
+                <Badge tone={h.risk_level === 'HIGH' ? 'red' : 'amber'}>{h.risk_level || 'N/A'}</Badge>
+              </div>
+            ))
+          )}
+        </div>
       </section>
     </>
   )

@@ -32,7 +32,27 @@ export async function fetchApi(endpoint: string, token?: string | null, options:
     throw error;
   }
 
-  // Handle empty responses
+// Handle empty responses
   const text = await response.text();
   return text ? JSON.parse(text) : null;
+}
+
+export interface ResponseIntelligence {
+  nearest_station_id: string | null;
+  nearest_station_name: string | null;
+  station_latitude: number | null;
+  station_longitude: number | null;
+  distance_km: number | null;
+  jurisdiction: string | null;
+  recommended_action: string;
+}
+
+export interface EnrichedPredictionItem {
+  rank: number;
+  atm_id: string;
+  probability: number;
+  latitude: number;
+  longitude: number;
+  risk: string;
+  response: ResponseIntelligence;
 }

@@ -2,6 +2,9 @@ from sqlalchemy.orm import Session
 from app.models.prediction import Prediction, PredictionCandidate
 from app.schemas.prediction import PredictResponse
 
+def get_latest_prediction_by_case(db: Session, case_id: str) -> Prediction:
+    return db.query(Prediction).filter(Prediction.case_id == case_id).order_by(Prediction.created_at.desc()).first()
+
 def create_prediction(db: Session, prediction_data: PredictResponse) -> Prediction:
     # 1. Create Prediction record
     db_prediction = Prediction(

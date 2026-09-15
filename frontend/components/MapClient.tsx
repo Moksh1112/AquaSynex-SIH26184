@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -131,6 +131,61 @@ export default function MapClient({
           </Marker>
         );
       })}
+
+      {/* Plot Nearest Police Station if applicable */}
+      {(() => {
+        const selectedCandidate = selectedAtmId ? candidates.find((c: any) => c.atm_id === selectedAtmId) : null;
+        if (selectedCandidate?.response?.nearest_station_id && selectedCandidate.response.station_latitude && selectedCandidate.response.station_longitude) {
+          const createPoliceIcon = () => {
+            return L.divIcon({
+              className: 'custom-leaflet-icon',
+              html: `<div style="
+                background-color: #3b82f6;
+                color: white;
+                border: 2px solid white;
+                border-radius: 4px;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                font-size: 14px;
+              ">PS</div>`,
+              iconSize: [30, 30],
+              iconAnchor: [15, 15],
+              popupAnchor: [0, -15]
+            });
+          };
+          return (
+            <>
+              <Marker
+                position={[selectedCandidate.response.station_latitude, selectedCandidate.response.station_longitude]}
+                icon={createPoliceIcon()}
+              >
+                <Popup>
+                  <div>
+                    <strong style={{ fontSize: '1.1em', color: '#3b82f6' }}>Police Station</strong>
+                    <div style={{ margin: '4px 0' }}>{selectedCandidate.response.nearest_station_name}</div>
+                    <div>Distance: <strong>{selectedCandidate.response.distance_km} km</strong></div>
+                  </div>
+                </Popup>
+              </Marker>
+              <Polyline
+                positions={[
+                  [selectedCandidate.latitude, selectedCandidate.longitude],
+                  [selectedCandidate.response.station_latitude, selectedCandidate.response.station_longitude]
+                ]}
+                color="#3b82f6"
+                weight={3}
+                dashArray="10, 10"
+              />
+            </>
+          );
+        }
+        return null;
+      })()}
 
       <FitBounds candidates={candidates} selectedAtmId={selectedAtmId} />
     </MapContainer>

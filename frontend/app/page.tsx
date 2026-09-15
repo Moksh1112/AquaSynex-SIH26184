@@ -1,7 +1,23 @@
-﻿'use client'
+'use client'
 
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { fetchApi } from '../lib/api'
+
+import {
+  LayoutDashboard,
+  FolderOpen,
+  GitBranch,
+  Crosshair,
+  Map as MapIcon,
+  Bell,
+  ClipboardList,
+  Shield,
+  ChevronDown,
+  MoreHorizontal,
+  Menu,
+  Search,
+  Settings
+} from 'lucide-react'
 
 import { Login } from '../components/Login'
 import { Overview } from '../components/Overview'
@@ -16,13 +32,13 @@ import { PageHeader } from '../components/ui/PageHeader'
 type View = 'overview' | 'cases' | 'case' | 'trail' | 'prediction' | 'map' | 'alerts' | 'audit'
 
 const nav = [
-  ['overview', 'Command Center', 'âŒ‚'],
-  ['cases', 'Case Files', 'â–£'],
-  ['trail', 'Money Trail', 'â†—'],
-  ['prediction', 'Predictions', 'âŒ'],
-  ['map', 'Geo Intelligence', 'âŠ™'],
-  ['alerts', 'Alerts', '!'],
-  ['audit', 'Audit Log', 'â‰¡'],
+  ['overview', 'Command Center', LayoutDashboard],
+  ['cases', 'Case Files', FolderOpen],
+  ['trail', 'Money Trail', GitBranch],
+  ['prediction', 'Predictions', Crosshair],
+  ['map', 'Geo Intelligence', MapIcon],
+  ['alerts', 'Alerts', Bell],
+  ['audit', 'Audit Log', ClipboardList],
 ] as const
 
 function Audit({ token }: { token: string }) {
@@ -198,12 +214,17 @@ export default function Page() {
     if (!token || !caseId) return;
     setLoadingPrediction(true);
     try {
-      const data = await fetchApi(`/predict`, token, {
+      // 1. Run the prediction model
+      await fetchApi(`/predict`, token, {
         method: 'POST',
         body: JSON.stringify({ case_id: caseId })
       });
-      setPredictionData(data);
-      // Refresh alerts after prediction to pick up the newly generated alert
+
+      // 2. Fetch the enriched prediction data containing response intelligence
+      const enrichedData = await fetchApi(`/predict/${caseId}/response-intelligence`, token);
+      setPredictionData(enrichedData);
+
+      // 3. Refresh alerts to pick up newly generated alert
       fetchAlerts();
     } catch (e: any) {
       console.error(e);
@@ -230,7 +251,7 @@ export default function Page() {
       />
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark">â—’</div>
+          <div className="brand-mark"><Shield size={20} /></div>
           <div><strong>ARGUS</strong><span>FINANCIAL INTELLIGENCE</span></div>
         </div>
         <div className="workspace">
@@ -238,11 +259,11 @@ export default function Page() {
           <button>
             <span className="avatar">MC</span>
             <span><strong>Major Crimes Unit</strong><small>Investigator view</small></span>
-            <span>âŒ„</span>
+            <span><ChevronDown size={16} /></span>
           </button>
         </div>
         <nav>
-          {nav.map(([key, label, icon]) => (
+          {nav.map(([key, label, Icon]) => (
             <button
               key={key}
               className={view === key || (key === 'cases' && view === 'case') ? 'active' : ''}
@@ -251,7 +272,7 @@ export default function Page() {
                 setIsSidebarOpen(false)
               }}
             >
-              <i>{icon}</i>{label}
+              <i><Icon size={18} /></i>{label}
               {key === 'alerts' && activeAlertsCount > 0 && <b>{activeAlertsCount}</b>}
             </button>
           ))}
@@ -261,24 +282,24 @@ export default function Page() {
           <button className="user-row">
             <span className="avatar">MC</span>
             <span><strong>Maya Chen</strong><small>Senior Investigator</small></span>
-            <span>â€¢â€¢â€¢</span>
+            <span><MoreHorizontal size={16} /></span>
           </button>
         </div>
       </aside>
       <div className="content">
         <header className="topbar">
           <div className="crumb">
-            <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation">â˜°</button>
+            <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation"><Menu size={20} /></button>
             <span>ARGUS</span><b>/</b>{activeLabel}
           </div>
           <div className="top-actions">
-            <span className="utc"><i className="status-pulse" />LIVE Â· 09:42 UTC</span>
-            <button aria-label="Search" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>âŒ•</button>
+            <span className="utc"><i className="status-pulse" />LIVE &middot; 09:42 UTC</span>
+            <button aria-label="Search" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}><Search size={20} /></button>
             <button aria-label="Notifications" onClick={() => setView('alerts')}>
-              â—Œ
+              <Bell size={20} />
               {activeAlertsCount > 0 && <b className="notification-count">{activeAlertsCount}</b>}
             </button>
-            <button aria-label="Settings" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>âš™</button>
+            <button aria-label="Settings" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}><Settings size={20} /></button>
           </div>
         </header>
         <div className="page-content">

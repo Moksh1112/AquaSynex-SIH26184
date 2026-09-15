@@ -1,5 +1,4 @@
-﻿'use client'
-
+import { useState, useEffect } from 'react'
 import { PageHeader } from './ui/PageHeader'
 import { Badge } from './ui/Badge'
 
@@ -16,6 +15,14 @@ export function PredictionPanel({
   loadingPrediction: boolean;
   runPrediction: () => void;
 }) {
+  const [selectedAtmId, setSelectedAtmId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (predictionData?.predictions?.length > 0 && !selectedAtmId) {
+      setSelectedAtmId(predictionData.predictions[0].atm_id);
+    }
+  }, [predictionData, selectedAtmId]);
+
   if (loadingPrediction) {
     return (
       <>
@@ -38,6 +45,7 @@ export function PredictionPanel({
   }
 
   const isUnknown = predictionData.risk === 'UNKNOWN';
+  const selectedCandidate = predictionData.predictions?.find((p: any) => p.atm_id === selectedAtmId) || predictionData.predictions?.[0];
 
   return (
     <>
@@ -65,7 +73,17 @@ export function PredictionPanel({
           <h2>Top predicted candidates</h2>
           {predictionData.predictions && predictionData.predictions.length > 0 ? (
             predictionData.predictions.slice(0, 5).map((p: any) => (
-              <div className="factor" key={p.atm_id}>
+              <div
+                className="factor"
+                key={p.atm_id}
+                onClick={() => setSelectedAtmId(p.atm_id)}
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedAtmId === p.atm_id ? 'rgba(255,255,255,0.05)' : 'transparent',
+                  padding: '0.5rem',
+                  borderRadius: '4px'
+                }}
+              >
                 <div>
                   <span>{p.atm_id}</span>
                   <b className={p.risk === 'HIGH' ? 'text-red' : 'text-amber'}>{(p.probability * 100).toFixed(1)}%</b>
@@ -93,6 +111,33 @@ export function PredictionPanel({
           </div>
         )}
       </section>
+
+      {selectedCandidate && selectedCandidate.response && (
+        <section className="panel response" style={{ marginTop: '1.5rem' }}>
+          <div className="eyebrow">Response Intelligence ({selectedCandidate.atm_id})</div>
+          <h2>Actionable Intelligence</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
+            <div>
+              <div style={{ color: '#a1a1aa', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Nearest Police Station</div>
+              <div style={{ fontWeight: 500, fontSize: '1.125rem' }}>{selectedCandidate.response.nearest_station_name || 'N/A'}</div>
+            </div>
+            <div>
+              <div style={{ color: '#a1a1aa', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Distance</div>
+              <div style={{ fontWeight: 500, fontSize: '1.125rem' }}>
+                {selectedCandidate.response.distance_km ? `${selectedCandidate.response.distance_km} km` : 'N/A'}
+              </div>
+            </div>
+            <div>
+              <div style={{ color: '#a1a1aa', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Jurisdiction</div>
+              <div style={{ fontWeight: 500, fontSize: '1.125rem' }}>{selectedCandidate.response.jurisdiction || 'N/A'}</div>
+            </div>
+            <div>
+              <div style={{ color: '#a1a1aa', fontSize: '0.875rem', marginBottom: '0.25rem' }}>Recommended Action</div>
+              <div style={{ fontWeight: 500, color: '#60a5fa' }}>{selectedCandidate.response.recommended_action}</div>
+            </div>
+          </div>
+        </section>
+      )}
     </>
   )
 }

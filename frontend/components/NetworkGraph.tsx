@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useMemo } from 'react'
 
@@ -181,7 +181,7 @@ export function NetworkGraph({ nodes, edges, onNodeClick }: { nodes: any[], edge
             </div>
             {node.metadata?.amount && (
               <div style={{ fontSize: '12px', color: '#64748b', marginTop: 'auto' }}>
-                â‚¹{Number(node.metadata.amount).toLocaleString()}
+                ₹{Number(node.metadata.amount).toLocaleString()}
               </div>
             )}
             {node.metadata?.bank_name && (
