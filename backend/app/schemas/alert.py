@@ -13,6 +13,8 @@ class AlertBase(BaseModel):
     prediction_id: Optional[int] = None
     priority: str
     status: AlertStatusEnum
+    target_stakeholder: Optional[str] = None
+    recommended_action: Optional[str] = None
 
 class AlertCreate(AlertBase):
     pass

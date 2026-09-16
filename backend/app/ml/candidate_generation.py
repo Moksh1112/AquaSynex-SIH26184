@@ -123,6 +123,14 @@ class CandidateGenerator:
                 reasons=list(reasons_set)
             ))
 
-        # Sort to ensure determinism (e.g. by atm_id) and limit
-        results.sort(key=lambda x: x.atm_id)
+        def score_reasons(reasons):
+            score = 0
+            if "Historical" in reasons: score += 1000
+            if "Syndicate" in reasons: score += 100
+            if "Spatial" in reasons: score += 10
+            if "Fallback-Hotspot" in reasons: score += 1
+            return score
+
+        # Sort by relevance, then determinism (e.g. by atm_id) and limit
+        results.sort(key=lambda x: (-score_reasons(x.reasons), x.atm_id))
         return results[:self.max_candidates]

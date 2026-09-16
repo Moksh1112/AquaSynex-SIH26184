@@ -18,6 +18,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(RoleEnum), nullable=False)
+    organization = Column(String, nullable=True) # e.g. "MH_POLICE", "NCIIPC_FIN"
     created_at = Column(DateTime, default=datetime.utcnow)
 
     audit_logs = relationship("AuditLog", back_populates="user")

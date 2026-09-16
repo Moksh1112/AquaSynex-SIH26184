@@ -59,6 +59,9 @@ def test_predict_valid_case(monkeypatch):
         ranks = [c["rank"] for c in data["predictions"]]
         assert ranks == sorted(ranks)
 
+        # Test Top-5 contract
+        assert len(data["predictions"]) == 5
+
 def test_predict_unknown_case(monkeypatch):
     _mock_auth(monkeypatch)
 

@@ -3,6 +3,22 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { fetchApi } from '../lib/api'
 
+import {
+  LayoutDashboard,
+  FolderOpen,
+  GitBranch,
+  Crosshair,
+  Map as MapIcon,
+  Bell,
+  ClipboardList,
+  Shield,
+  ChevronDown,
+  MoreHorizontal,
+  Menu,
+  Search,
+  Settings
+} from 'lucide-react'
+
 import { Login } from '../components/Login'
 import { Overview } from '../components/Overview'
 import { Cases } from '../components/Cases'
@@ -16,20 +32,70 @@ import { PageHeader } from '../components/ui/PageHeader'
 type View = 'overview' | 'cases' | 'case' | 'trail' | 'prediction' | 'map' | 'alerts' | 'audit'
 
 const nav = [
-  ['overview', 'Command Center', '⌂'],
-  ['cases', 'Case Files', '▣'],
-  ['trail', 'Money Trail', '↗'],
-  ['prediction', 'Predictions', '⌁'],
-  ['map', 'Geo Intelligence', '⊙'],
-  ['alerts', 'Alerts', '!'],
-  ['audit', 'Audit Log', '≡'],
+  ['overview', 'Command Center', LayoutDashboard],
+  ['cases', 'Case Files', FolderOpen],
+  ['trail', 'Money Trail', GitBranch],
+  ['prediction', 'Predictions', Crosshair],
+  ['map', 'Geo Intelligence', MapIcon],
+  ['alerts', 'Alerts', Bell],
+  ['audit', 'Audit Log', ClipboardList],
 ] as const
 
-function Audit() { 
+function Audit({ token }: { token: string }) {
+  const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    setLoading(true)
+    setError(null)
+    fetchApi('/audit', token)
+      .then(data => setLogs(data || []))
+      .catch((err: any) => {
+        const msg = err.message || 'Unknown error occurred'
+        setError(msg)
+      })
+      .finally(() => setLoading(false))
+  }, [token])
+
   return (
     <>
-      <PageHeader eyebrow="System / Traceability" title="Audit Log" subtitle="Currently, there is no GET /audit backend endpoint to fetch this data." />
-      <div style={{ padding: '2rem', color: '#a1a1aa' }}>Audit logs will appear here once the backend API is connected.</div>
+      <PageHeader eyebrow="System / Traceability" title="Audit Log" subtitle="Comprehensive record of system events and actions." />
+      <div className="table-panel panel">
+        {loading ? (
+          <div style={{ padding: '2rem', color: '#a1a1aa' }}>Loading audit records...</div>
+        ) : error ? (
+          <div style={{ padding: '2rem', color: '#ef4444' }}>Failed to load audit logs: {error}</div>
+        ) : logs.length === 0 ? (
+          <div style={{ padding: '2rem', color: '#a1a1aa' }}>No audit records found.</div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>Resource</th>
+                <th>Status</th>
+                <th>User</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((log) => (
+                <tr key={log.id}>
+                  <td>
+                    <strong>{new Date(log.timestamp).toLocaleString()}</strong>
+                  </td>
+                  <td>{log.action}</td>
+                  <td className="mono">{log.resource}</td>
+                  <td>{log.status}</td>
+                  <td>{log.username || (log.user_id ? `ID: ${log.user_id}` : 'System')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </>
   )
 }
@@ -39,11 +105,11 @@ export default function Page() {
   const [view, setView] = useState<View>('overview')
   const [caseId, setCaseId] = useState<string>('')
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false)
-  
+
   // Data State
   const [backendCases, setBackendCases] = useState<any[]>([])
   const [loadingCases, setLoadingCases] = useState(false)
-  
+
   const [caseDetails, setCaseDetails] = useState<any>(null)
   const [loadingCaseDetails, setLoadingCaseDetails] = useState(false)
 
@@ -51,34 +117,15 @@ export default function Page() {
   const [loadingGraph, setLoadingGraph] = useState(false)
   const [computedFlow, setComputedFlow] = useState<any[]>([])
   const [computedSteps, setComputedSteps] = useState<any[]>([])
-  
+
   const [predictionData, setPredictionData] = useState<any>(null)
   const [loadingPrediction, setLoadingPrediction] = useState(false)
-  
+
   const [locationsData, setLocationsData] = useState<any[]>([])
   const [loadingLocations, setLoadingLocations] = useState(false)
 
   const [alertsData, setAlertsData] = useState<any[]>([])
   const [loadingAlerts, setLoadingAlerts] = useState(false)
-
-  // Fetch initial data (Cases, Locations, Alerts) once authenticated
-  useEffect(() => {
-    if (!token) return
-
-    setLoadingCases(true)
-    fetchApi('/cases', token)
-      .then(data => setBackendCases(data || []))
-      .catch(() => setBackendCases([]))
-      .finally(() => setLoadingCases(false))
-
-    setLoadingLocations(true)
-    fetchApi('/locations', token)
-      .then(data => setLocationsData(data || []))
-      .catch(() => setLocationsData([]))
-      .finally(() => setLoadingLocations(false))
-
-    fetchAlerts()
-  }, [token])
 
   const fetchAlerts = useCallback(() => {
     if (!token) return
@@ -88,7 +135,51 @@ export default function Page() {
       .catch(() => setAlertsData([]))
       .finally(() => setLoadingAlerts(false))
   }, [token])
-  
+
+  // Fetch initial data (Cases, Locations, Alerts) once authenticated
+  const fetchCases = useCallback(() => {
+    setLoadingCases(true)
+    fetchApi('/cases', token)
+      .then(data => setBackendCases(data || []))
+      .catch(() => setBackendCases([]))
+      .finally(() => setLoadingCases(false))
+  }, [token])
+
+  useEffect(() => {
+    if (!token) return
+
+    fetchCases()
+
+    setLoadingLocations(true)
+    fetchApi('/locations', token)
+      .then(data => setLocationsData(data || []))
+      .catch(() => setLocationsData([]))
+      .finally(() => setLoadingLocations(false))
+
+    fetchAlerts()
+
+    // SSE setup
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const eventSource = new EventSource(`${API_URL}/events/stream`);
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'NEW_ALERT') {
+          // Re-fetch alerts to update UI
+          fetchAlerts();
+          // Optional: if we want to immediately navigate or notify based on payload.case_id,
+          // we could do so here, but auto-navigating might disrupt the user.
+        }
+      } catch (e) {
+        console.error("SSE parse error", e);
+      }
+    };
+
+    return () => {
+      eventSource.close();
+    }
+  }, [token, fetchAlerts])
+
   // Fetch specific case data when caseId changes
   useEffect(() => {
     if (!token || !caseId) return
@@ -123,12 +214,17 @@ export default function Page() {
     if (!token || !caseId) return;
     setLoadingPrediction(true);
     try {
-      const data = await fetchApi(`/predict`, token, {
+      // 1. Run the prediction model
+      await fetchApi(`/predict`, token, {
         method: 'POST',
         body: JSON.stringify({ case_id: caseId })
       });
-      setPredictionData(data);
-      // Refresh alerts after prediction to pick up the newly generated alert
+
+      // 2. Fetch the enriched prediction data containing response intelligence
+      const enrichedData = await fetchApi(`/predict/${caseId}/response-intelligence`, token);
+      setPredictionData(enrichedData);
+
+      // 3. Refresh alerts to pick up newly generated alert
       fetchAlerts();
     } catch (e: any) {
       console.error(e);
@@ -143,19 +239,19 @@ export default function Page() {
   const activeAlertsCount = useMemo(() => {
     return alertsData.filter(a => ['OPEN', 'ACKNOWLEDGED'].includes(a.status)).length;
   }, [alertsData]);
-  
+
   if (!token) return <Login setToken={setToken} />
-  
+
   return (
     <main className="app-shell">
-      <div 
+      <div
         className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
         onClick={() => setIsSidebarOpen(false)}
         aria-hidden="true"
       />
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark">◒</div>
+          <div className="brand-mark"><Shield size={20} /></div>
           <div><strong>ARGUS</strong><span>FINANCIAL INTELLIGENCE</span></div>
         </div>
         <div className="workspace">
@@ -163,20 +259,20 @@ export default function Page() {
           <button>
             <span className="avatar">MC</span>
             <span><strong>Major Crimes Unit</strong><small>Investigator view</small></span>
-            <span>⌄</span>
+            <span><ChevronDown size={16} /></span>
           </button>
         </div>
         <nav>
-          {nav.map(([key, label, icon]) => (
-            <button 
-              key={key} 
-              className={view === key || (key === 'case' && view === 'case') ? 'active' : ''} 
+          {nav.map(([key, label, Icon]) => (
+            <button
+              key={key}
+              className={view === key || (key === 'cases' && view === 'case') ? 'active' : ''}
               onClick={() => {
                 setView(key as View)
                 setIsSidebarOpen(false)
               }}
             >
-              <i>{icon}</i>{label}
+              <i><Icon size={18} /></i>{label}
               {key === 'alerts' && activeAlertsCount > 0 && <b>{activeAlertsCount}</b>}
             </button>
           ))}
@@ -186,49 +282,49 @@ export default function Page() {
           <button className="user-row">
             <span className="avatar">MC</span>
             <span><strong>Maya Chen</strong><small>Senior Investigator</small></span>
-            <span>•••</span>
+            <span><MoreHorizontal size={16} /></span>
           </button>
         </div>
       </aside>
       <div className="content">
         <header className="topbar">
           <div className="crumb">
-            <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation">☰</button>
+            <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation"><Menu size={20} /></button>
             <span>ARGUS</span><b>/</b>{activeLabel}
           </div>
           <div className="top-actions">
-            <span className="utc"><i className="status-pulse" />LIVE · 09:42 UTC</span>
-            <button aria-label="Search" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>⌕</button>
+            <span className="utc"><i className="status-pulse" />LIVE &middot; 09:42 UTC</span>
+            <button aria-label="Search" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}><Search size={20} /></button>
             <button aria-label="Notifications" onClick={() => setView('alerts')}>
-              ◌
+              <Bell size={20} />
               {activeAlertsCount > 0 && <b className="notification-count">{activeAlertsCount}</b>}
             </button>
-            <button aria-label="Settings" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>⚙</button>
+            <button aria-label="Settings" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}><Settings size={20} /></button>
           </div>
         </header>
         <div className="page-content">
           {view === 'overview' && (
-            <Overview setView={setView} setCaseId={setCaseId} cases={backendCases} alerts={alertsData} loading={loadingCases || loadingAlerts} />
+            <Overview setView={(v: any) => setView(v as View)} setCaseId={setCaseId} cases={backendCases} alerts={alertsData} loading={loadingCases || loadingAlerts} />
           )}
           {view === 'cases' && (
-            <Cases setView={setView} setCaseId={setCaseId} cases={backendCases} loading={loadingCases} />
+            <Cases setView={(v: any) => setView(v as View)} setCaseId={setCaseId} cases={backendCases} loading={loadingCases} token={token} refreshCases={fetchCases} />
           )}
           {view === 'case' && (
-            <CaseDetail setView={setView} caseId={caseId} caseDetails={caseDetails} loadingCase={loadingCaseDetails} flow={computedFlow} loadingGraph={loadingGraph} />
+            <CaseDetail token={token} setView={(v: any) => setView(v as View)} caseId={caseId} caseDetails={caseDetails} loadingCase={loadingCaseDetails} flow={computedFlow} loadingGraph={loadingGraph} graphData={graphData} />
           )}
           {view === 'trail' && (
-            <GraphPanel setView={setView} caseId={caseId} flow={computedFlow} steps={computedSteps} loadingGraph={loadingGraph} />
+            <GraphPanel setView={(v: any) => setView(v as View)} caseId={caseId} flow={computedFlow} steps={computedSteps} loadingGraph={loadingGraph} graphData={graphData} />
           )}
           {view === 'prediction' && (
-            <PredictionPanel setView={setView} caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} runPrediction={runPrediction} />
+            <PredictionPanel setView={(v: any) => setView(v as View)} caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} runPrediction={runPrediction} />
           )}
           {view === 'map' && (
-            <MapView caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} locationsData={locationsData} />
+            <MapView token={token} caseId={caseId} predictionData={predictionData} loadingPrediction={loadingPrediction} locationsData={locationsData} />
           )}
           {view === 'alerts' && (
-            <AlertPanel token={token} alerts={alertsData} loading={loadingAlerts} refreshAlerts={fetchAlerts} />
+            <AlertPanel token={token} alerts={alertsData} cases={backendCases} loading={loadingAlerts} refreshAlerts={fetchAlerts} setView={(v: any) => setView(v as View)} setCaseId={setCaseId} />
           )}
-          {view === 'audit' && <Audit />}
+          {view === 'audit' && <Audit token={token} />}
         </div>
       </div>
     </main>

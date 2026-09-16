@@ -9,9 +9,9 @@ def get_data_dir() -> str:
 def predict_time_window(case_id: str) -> str:
     data_dir = get_data_dir()
     try:
-        comps = pd.read_csv(os.path.join(data_dir, "complaints.csv"))
-        wds = pd.read_csv(os.path.join(data_dir, "withdrawals.csv"), parse_dates=['timestamp'])
-        txs = pd.read_csv(os.path.join(data_dir, "transactions.csv"), parse_dates=['timestamp'])
+        comps = pd.read_csv(os.path.join(data_dir, "complaints.csv"), dtype={'case_id': str})
+        wds = pd.read_csv(os.path.join(data_dir, "withdrawals.csv"), parse_dates=['timestamp'], dtype={'case_id': str})
+        txs = pd.read_csv(os.path.join(data_dir, "transactions.csv"), parse_dates=['timestamp'], dtype={'case_id': str})
     except FileNotFoundError:
         return "Insufficient historical data"
         

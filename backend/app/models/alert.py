@@ -17,6 +17,8 @@ class Alert(Base):
     prediction_id = Column(Integer, ForeignKey("predictions.id"), nullable=True)
     priority = Column(String, nullable=False) # e.g. HIGH, MEDIUM, LOW
     status = Column(Enum(AlertStatus), default=AlertStatus.OPEN)
+    target_stakeholder = Column(String, nullable=True) # LEA, BANK_FI, I4C
+    recommended_action = Column(String, nullable=True) # REVIEW_CASE, MONITOR_ATM, etc.
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

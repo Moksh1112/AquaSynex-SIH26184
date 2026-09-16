@@ -1,90 +1,188 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { PageHeader } from './ui/PageHeader'
 import { Badge } from './ui/Badge'
+import { fetchApi } from '../lib/api'
 
-export function MapView({ 
-  caseId, 
-  predictionData, 
+const MapClient = dynamic(() => import('./MapClient'), {
+  ssr: false,
+  loading: () => <div style={{ padding: '2rem' }}>Loading geographic map...</div>
+})
+
+export function MapView({
+  token,
+  caseId,
+  predictionData,
   loadingPrediction,
   locationsData
-}: { 
-  caseId: string; 
-  predictionData: any; 
+}: {
+  token: string;
+  caseId: string;
+  predictionData: any;
   loadingPrediction: boolean;
   locationsData: any[];
 }) {
+  const [selectedAtmId, setSelectedAtmId] = useState<string | null>(null);
+
+  const [riskFilter, setRiskFilter] = useState<string>('');
+  const [timeFilter, setTimeFilter] = useState<string>('');
+  const [radiusFilter, setRadiusFilter] = useState<number>(0); // 0 means ALL
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+
+  const [mapMode, setMapMode] = useState<'CASE' | 'GLOBAL'>('CASE');
+  const [heatmapData, setHeatmapData] = useState<any[]>([]);
+  const [loadingHeatmap, setLoadingHeatmap] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!token || mapMode === 'CASE') return;
+
+    setLoadingHeatmap(true);
+    let url = '/locations/heatmap?';
+    const params = new URLSearchParams();
+
+    if (riskFilter) params.append('risk_level', riskFilter);
+    if (categoryFilter) params.append('crime_category', categoryFilter);
+
+    // Simplistic time filter logic for frontend demo bounds
+    if (timeFilter && timeFilter !== 'ALL') {
+      const now = new Date();
+      if (timeFilter === 'LAST_24H') {
+         params.append('start_time', new Date(now.getTime() - 24*60*60*1000).toISOString());
+      } else if (timeFilter === 'LAST_7D') {
+         params.append('start_time', new Date(now.getTime() - 7*24*60*60*1000).toISOString());
+      }
+    }
+
+    if (radiusFilter > 0) {
+      params.append('latitude', '19.076');
+      params.append('longitude', '72.877');
+      params.append('radius_km', radiusFilter.toString());
+    }
+
+    fetchApi(`/locations/heatmap?${params.toString()}`, token)
+      .then(data => setHeatmapData(data || []))
+      .catch(e => console.error("Failed to fetch heatmap", e))
+      .finally(() => setLoadingHeatmap(false));
+  }, [token, mapMode, riskFilter, timeFilter, radiusFilter, categoryFilter]);
+
+  const activePredictionData = mapMode === 'CASE' ? predictionData : {
+    ...predictionData,
+    predictions: heatmapData.map(h => ({
+      atm_id: h.atm_id,
+      latitude: h.lat,
+      longitude: h.lng,
+      probability: h.weight,
+      risk: h.risk_level || 'HIGH',
+      rank: 1
+    }))
+  };
+
+  const currentLocations = mapMode === 'CASE'
+    ? (predictionData?.predictions || [])
+    : heatmapData;
+
+
   return (
     <>
-      <PageHeader 
-        eyebrow={`${caseId} / Geospatial analysis`} 
-        title="Geo Intelligence" 
-        subtitle="Jurisdictional view of the transfer network and predicted locations." 
+      <PageHeader
+        eyebrow={`${caseId} / Geospatial analysis`}
+        title="Geo Intelligence"
+        subtitle="Jurisdictional view of the transfer network and predicted locations. Data is fetched directly from backend PostGIS filters."
       />
+      <div className="filter-row" style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+         <div>
+            <label style={{ marginRight: '0.5rem', color: '#a1a1aa' }}>Map Mode:</label>
+            <select style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.25rem', fontWeight: 'bold' }} value={mapMode} onChange={e => setMapMode(e.target.value as any)}>
+               {caseId && <option value="CASE">Case Intelligence Mode</option>}
+               <option value="GLOBAL">Global Risk Mode</option>
+            </select>
+         </div>
+         {mapMode === 'GLOBAL' && (
+           <>
+             <div>
+                <label style={{ marginRight: '0.5rem', color: '#a1a1aa' }}>Risk Level:</label>
+                <select style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.25rem' }} value={riskFilter} onChange={e => setRiskFilter(e.target.value)}>
+                   <option value="">All Risks</option>
+                   <option value="HIGH">High Risk</option>
+                   <option value="MEDIUM">Medium Risk</option>
+                </select>
+             </div>
+             <div>
+                <label style={{ marginRight: '0.5rem', color: '#a1a1aa' }}>Time Window:</label>
+                <select style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.25rem' }} value={timeFilter} onChange={e => setTimeFilter(e.target.value)}>
+                   <option value="">All Times</option>
+                   <option value="LAST_24H">Last 24 Hours</option>
+                   <option value="LAST_7D">Last 7 Days</option>
+                </select>
+             </div>
+             <div>
+                <label style={{ marginRight: '0.5rem', color: '#a1a1aa' }}>Radius (Mumbai):</label>
+                <select style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.25rem' }} value={radiusFilter} onChange={e => setRadiusFilter(Number(e.target.value))}>
+                   <option value={0}>Anywhere</option>
+                   <option value={5}>Within 5 km</option>
+                   <option value={15}>Within 15 km</option>
+                   <option value={50}>Within 50 km</option>
+                </select>
+             </div>
+             <div>
+                <label style={{ marginRight: '0.5rem', color: '#a1a1aa' }}>Crime Category:</label>
+                <select style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.25rem' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
+                   <option value="">All Categories</option>
+                   <option value="FINANCIAL_FRAUD">Financial Fraud</option>
+                   <option value="IDENTITY_THEFT">Identity Theft</option>
+                   <option value="CYBER_TERRORISM">Cyber Terrorism</option>
+                </select>
+             </div>
+           </>
+         )}
+      </div>
       <section className="panel map-panel">
-        {loadingPrediction ? (
-          <div style={{ padding: '2rem' }}>Loading map data...</div>
-        ) : (!locationsData || locationsData.length === 0) ? (
-          <div style={{ padding: '2rem', color: '#a1a1aa' }}>No locations found.</div>
-        ) : (
-          <>
-            <div className="map-canvas" style={{ position: 'relative', overflow: 'hidden' }}>
-              <div className="map-grid" />
-              
-              {/* Display background ATMs */}
-              {locationsData.map((loc: any, i: number) => {
-                 // Fake a position based on hash or just randomly distribute them for visual purposes if they don't have normalized coordinates. 
-                 // Since this is a demo, we will use index to scatter them if actual lat/lon isn't easily map-able to CSS.
-                 // Assuming actual lat/lon needs projection, we'll do a simple mock projection.
-                 const top = ((Math.abs(loc.latitude) % 90) / 90) * 100;
-                 const left = ((Math.abs(loc.longitude) % 180) / 180) * 100;
-                 
-                 // Is it a prediction?
-                 const isPredicted = predictionData?.predictions?.find((p: any) => p.atm_id === loc.atm_id);
-                 
-                 return (
-                   <div 
-                     key={loc.atm_id} 
-                     className={`map-label`} 
-                     style={{
-                       position: 'absolute', 
-                       top: `${top}%`, 
-                       left: `${left}%`, 
-                       transform: 'translate(-50%, -50%)', 
-                       backgroundColor: isPredicted ? 'rgba(255,0,0,0.8)' : 'rgba(0,0,0,0.5)', 
-                       padding: '5px', 
-                       borderRadius: '4px',
-                       zIndex: isPredicted ? 10 : 1
-                     }}
-                   >
-                     {loc.atm_id}
-                     {isPredicted && <span>{isPredicted.risk} RISK</span>}
-                   </div>
-                 );
-              })}
-              <div className="map-watermark">FININT<br />NETWORK MAP</div>
-            </div>
-            <div className="map-side">
-              <div className="eyebrow">Prediction Candidates</div>
-              <h2>{predictionData?.predictions?.length || 0} Predicted Locations</h2>
-              {predictionData?.predictions?.length > 0 ? (
-                predictionData.predictions.map((p: any) => (
-                  <div className="jurisdiction" key={p.atm_id}>
-                    <span className={`country-dot ${p.risk === 'HIGH' ? 'red' : 'amber'}`} />
-                    <div>
-                      <strong>{p.atm_id}</strong>
-                      <small>{p.latitude}, {p.longitude}</small>
-                    </div>
-                    <Badge tone={p.risk === 'HIGH' ? 'red' : 'amber'}>{p.risk}</Badge>
-                  </div>
-                ))
-              ) : (
-                <div style={{ color: '#a1a1aa' }}>No predictions available for this case.</div>
-              )}
-            </div>
-          </>
-        )}
+        <div className="map-canvas" style={{ position: 'relative', overflow: 'hidden' }}>
+          {mapMode === 'GLOBAL' && loadingHeatmap ? (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading heatmap data from backend...</div>
+          ) : mapMode === 'CASE' && loadingPrediction ? (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading case prediction from backend...</div>
+          ) : null}
+          <MapClient
+            predictionData={activePredictionData}
+            locationsData={locationsData}
+            selectedAtmId={selectedAtmId}
+          />
+        </div>
+        <div className="map-side" style={{ overflowY: 'auto' }}>
+          <div className="eyebrow">{mapMode === 'CASE' ? 'Case Intelligence' : 'Global Risk View'}</div>
+          <h2>{currentLocations?.length || 0} Matching Locations</h2>
+          {(!currentLocations || currentLocations.length === 0) ? (
+            <div style={{ color: '#a1a1aa', marginTop: '1rem' }}>No locations available for this view.</div>
+          ) : (
+            currentLocations.map((h: any, idx: number) => (
+              <div
+                className="jurisdiction"
+                key={`${h.atm_id}-${idx}`}
+                onClick={() => setSelectedAtmId(h.atm_id)}
+                style={{
+                  cursor: 'pointer',
+                  backgroundColor: selectedAtmId === h.atm_id ? 'rgba(0,0,0,0.05)' : 'transparent',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  marginBottom: '8px',
+                  border: selectedAtmId === h.atm_id ? '1px solid rgba(0,0,0,0.1)' : '1px solid transparent'
+                }}
+              >
+                <span className={`country-dot ${h.risk_level === 'HIGH' ? 'red' : 'amber'}`} />
+                <div>
+                  <strong>{h.atm_id}</strong>
+                  <small style={{ display: 'block' }}>{h.lat}, {h.lng}</small>
+                  <small style={{ display: 'block', color: '#71717a' }}>{h.crime_category}</small>
+                </div>
+                <Badge tone={h.risk_level === 'HIGH' ? 'red' : 'amber'}>{h.risk_level || 'N/A'}</Badge>
+              </div>
+            ))
+          )}
+        </div>
       </section>
-    </> 
+    </>
   )
 }

@@ -4,18 +4,22 @@ import { PageHeader } from './ui/PageHeader'
 import { Badge } from './ui/Badge'
 import { FlowEntity, TrailStep, getNodeDisplayName } from '../lib/graph-transform'
 
+import { NetworkGraph } from './NetworkGraph'
+
 export function GraphPanel({ 
   setView, 
   caseId, 
   flow,
   steps,
-  loadingGraph 
+  loadingGraph,
+  graphData
 }: { 
   setView: (v: string) => void; 
   caseId: string; 
   flow: FlowEntity[];
   steps: TrailStep[];
   loadingGraph: boolean;
+  graphData: any;
 }) {
   return (
     <>
@@ -32,34 +36,20 @@ export function GraphPanel({
             <h2>Transfer path</h2>
           </div>
           <div className="trail-meta">
-            <span>Nodes <b>{flow.length}</b></span>
+            <span>Entities <b>{graphData?.nodes?.length || 0}</b></span>
           </div>
         </div>
         
         {loadingGraph ? (
           <div style={{ padding: '2rem' }}>Loading graph...</div>
-        ) : flow.length === 0 ? (
+        ) : !graphData || !graphData.nodes || graphData.nodes.length === 0 ? (
           <div style={{ padding: '2rem', color: '#a1a1aa' }}>No graph data available.</div>
         ) : (
           <>
-            <div className="large-flow">
-              {flow.map((item, i) => (
-                <div className="large-step" key={item.id + i}>
-                  <div className={`large-node ${item.tone}`}>
-                    <span>{i + 1}</span>
-                  </div>
-                  <div className="eyebrow">{item.label}</div>
-                  <h3>{item.name}</h3>
-                  <strong>{item.value}</strong>
-                  <Badge tone={item.tone}>
-                    {item.type}
-                  </Badge>
-                  {i < flow.length - 1 && <div className="large-line"><i /></div>}
-                </div>
-              ))}
-            </div>
+            <NetworkGraph nodes={graphData.nodes} edges={graphData.edges} />
             
-            <div className="transaction-table">
+            <div className="transaction-table" style={{ marginTop: '2rem' }}>
+              <h3>Transaction Log</h3>
               {steps.map((step, i) => {
                 const fromName = getNodeDisplayName(step.fromNode);
                 const toName = getNodeDisplayName(step.toNode);
@@ -67,10 +57,12 @@ export function GraphPanel({
                 const amountDisplay = step.amount ? `₹${step.amount.toLocaleString()}` : '';
 
                 return (
-                  <div key={i}>
-                    <span>Step {i+1}</span>
-                    <b>{step.description}</b>
-                    <span>{fromName} → {toName}</span>
+                  <div key={i} style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between' }}>
+                    <div>
+                      <div className="eyebrow">Step {i+1}</div>
+                      <b>{step.description}</b>
+                      <div>{fromName} → {toName}</div>
+                    </div>
                     <strong>{amountDisplay}</strong>
                   </div>
                 )

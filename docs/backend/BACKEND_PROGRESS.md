@@ -19,6 +19,7 @@ IN PROGRESS
 - [x] Audit logging
 - [x] Tests
 - [ ] Integration validation
+- [x] Graph
 
 ## Current Task
 Completed Phase H (Audit Logging & Security Hardening). Ready for Phase I.

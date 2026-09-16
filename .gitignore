@@ -21,3 +21,15 @@ build/
 
 # macOS
 .DS_Store
+
+# App Storage
+backend/evidence_storage/
+
+# ML Data Backups
+ml/data/backup/
+
+# Build caches
+*.tsbuildinfo
+
+# Scratch scripts
+scratch/

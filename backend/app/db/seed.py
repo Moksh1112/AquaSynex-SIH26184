@@ -15,13 +15,13 @@ def seed_db():
     db = SessionLocal()
     try:
         print("Starting synthetic seed generation...")
-        
+
         # 1. Clear existing data (if using sqlite during testing)
         # Note: In a real db with constraints, you'd delete in reverse order of dependencies.
         # This simple script assumes a fresh DB or handles collisions by checking existence.
         if db.query(Complaint).first():
             print("Database already seeded. Skipping Postgres seed...")
-            
+
             # Sync to Neo4j anyway
             from app.db.neo4j_session import init_neo4j
             from app.db.neo4j_sync import sync_to_neo4j
@@ -42,7 +42,8 @@ def seed_db():
             case_id="C-2026-9081",
             description="Victim reported unauthorized transfer of ₹45,000 from their primary account.",
             status="OPEN",
-            reported_at=datetime.utcnow() - timedelta(hours=5)
+            reported_at=datetime.utcnow() - timedelta(hours=5),
+            account_id="V-100200300"
         )
         db.add(complaint)
         db.flush()
@@ -51,7 +52,7 @@ def seed_db():
         victim_acc = Account(account_number="V-100200300", bank_name="State Bank of India", is_flagged=False)
         mule1_acc = Account(account_number="M-999888777", bank_name="HDFC Bank", is_flagged=True)
         mule2_acc = Account(account_number="M-555444333", bank_name="ICICI Bank", is_flagged=True)
-        
+
         db.add_all([victim_acc, mule1_acc, mule2_acc])
         db.flush()
 
@@ -112,7 +113,7 @@ def seed_db():
             timestamp=complaint.reported_at - timedelta(minutes=45)
         )
         db.add(withdrawal)
-        
+
         # Commit all synthetic records
         db.commit()
         print("Seed data successfully injected!")
@@ -120,13 +121,38 @@ def seed_db():
         # 10. Sync to Neo4j
         from app.db.neo4j_session import init_neo4j
         from app.db.neo4j_sync import sync_to_neo4j
-        
+
         print("Initializing Neo4j constraints...")
         init_neo4j()
-        
+
         print("Synchronizing data to Neo4j...")
         sync_to_neo4j(db)
         print("Neo4j graph populated!")
+
+        from app.models.police_station import PoliceStation
+
+        print("Creating Police Stations...")
+        stations = [
+            PoliceStation(station_id="PS-MUM-ANDHERI-EAST",
+                          station_name="Andheri East Police Station",
+                          latitude=19.0832, longitude=72.8710,
+                          jurisdiction_code="MH_MUMBAI",
+                          address="Andheri East, Mumbai, Maharashtra"),
+            PoliceStation(station_id="PS-MUM-SAKINAKA",
+                          station_name="Sakinaka Police Station",
+                          latitude=19.0867, longitude=72.8870,
+                          jurisdiction_code="MH_MUMBAI",
+                          address="Sakinaka, Mumbai, Maharashtra"),
+            PoliceStation(station_id="PS-MUM-POWAI",
+                          station_name="Powai Police Station",
+                          latitude=19.1189, longitude=72.9050,
+                          jurisdiction_code="MH_MUMBAI",
+                          address="Powai, Mumbai, Maharashtra"),
+        ]
+        db.add_all(stations)
+        db.commit()
+
+        print("Seeding completed successfully.")
 
     except Exception as e:
         db.rollback()
