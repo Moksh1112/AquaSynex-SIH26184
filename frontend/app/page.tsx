@@ -165,18 +165,21 @@ export default function Page() {
       try {
         const payload = JSON.parse(event.data);
         if (payload.type === 'NEW_ALERT') {
-          // Re-fetch alerts to update UI
           fetchAlerts();
-          // Optional: if we want to immediately navigate or notify based on payload.case_id,
-          // we could do so here, but auto-navigating might disrupt the user.
         }
       } catch (e) {
         console.error("SSE parse error", e);
       }
     };
 
+    const handleUnauthorized = () => {
+      setToken('');
+    };
+    window.addEventListener('auth-unauthorized', handleUnauthorized);
+
     return () => {
       eventSource.close();
+      window.removeEventListener('auth-unauthorized', handleUnauthorized);
     }
   }, [token, fetchAlerts])
 
@@ -193,14 +196,14 @@ export default function Page() {
 
     // Fetch Graph
     setLoadingGraph(true)
-        fetchApi(`/graph/${caseId}`, token)
+    fetchApi(`/graph/${caseId}`, token)
       .then(data => {
-          setGraphData(data)
-          import('../lib/graph-transform').then(({ transformGraph }) => {
-            const { flow, steps } = transformGraph(data)
-            setComputedFlow(flow)
-            setComputedSteps(steps)
-          })
+        setGraphData(data)
+        import('../lib/graph-transform').then(({ transformGraph }) => {
+          const { flow, steps } = transformGraph(data)
+          setComputedFlow(flow)
+          setComputedSteps(steps)
+        })
       })
       .catch(() => { setGraphData(null); setComputedFlow([]); setComputedSteps([]) })
       .finally(() => setLoadingGraph(false))
@@ -251,15 +254,15 @@ export default function Page() {
       />
       <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="brand">
-          <div className="brand-mark"><Shield size={20} /></div>
-          <div><strong>ARGUS</strong><span>FINANCIAL INTELLIGENCE</span></div>
+          <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, marginRight: 10, borderRadius: '50%', objectFit: 'cover' }} />
+          <div className="brand-text"><strong>MoneyTrail</strong><span>FINANCIAL INTELLIGENCE</span></div>
         </div>
         <div className="workspace">
           <span className="eyebrow">Workspace</span>
           <button>
-            <span className="avatar">MC</span>
-            <span><strong>Major Crimes Unit</strong><small>Investigator view</small></span>
-            <span><ChevronDown size={16} /></span>
+            <span className="workspace-avatar">MCU</span>
+            <span className="workspace-info"><strong>Major Crimes Unit</strong><small>Investigator view</small></span>
+            <span className="workspace-icon"><ChevronDown size={16} /></span>
           </button>
         </div>
         <nav>
@@ -272,17 +275,17 @@ export default function Page() {
                 setIsSidebarOpen(false)
               }}
             >
-              <i><Icon size={18} /></i>{label}
-              {key === 'alerts' && activeAlertsCount > 0 && <b>{activeAlertsCount}</b>}
+              <i><Icon size={18} /></i>
+              <span className="nav-label">{label}</span>
+              {key === 'alerts' && activeAlertsCount > 0 && <b className="nav-badge">{activeAlertsCount}</b>}
             </button>
           ))}
         </nav>
         <div className="sidebar-foot">
-          <div className="system-status"><span className="status-pulse" />All systems operational</div>
           <button className="user-row">
-            <span className="avatar">MC</span>
-            <span><strong>Maya Chen</strong><small>Senior Investigator</small></span>
-            <span><MoreHorizontal size={16} /></span>
+            <span className="avatar">AR</span>
+            <span className="user-info"><strong>Ashutosh Ramamani</strong><small>Senior Investigator</small></span>
+            <span className="user-icon"><MoreHorizontal size={16} /></span>
           </button>
         </div>
       </aside>
@@ -290,7 +293,8 @@ export default function Page() {
         <header className="topbar">
           <div className="crumb">
             <button className="menu-toggle" onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation"><Menu size={20} /></button>
-            <span>ARGUS</span><b>/</b>{activeLabel}
+            <img src="/logo.png" alt="Logo" style={{ width: 20, height: 20, marginRight: 6, borderRadius: 2 }} />
+            <span>MoneyTrail</span><b>/</b>{activeLabel}
           </div>
           <div className="top-actions">
             <span className="utc"><i className="status-pulse" />LIVE &middot; 09:42 UTC</span>

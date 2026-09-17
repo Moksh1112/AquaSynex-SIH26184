@@ -5,6 +5,7 @@ import { Badge } from './ui/Badge'
 
 import { useState, useEffect } from 'react'
 import { fetchApi } from '../lib/api'
+import BorderGlow from './BorderGlow'
 
 type IntakeStage = 'idle' | 'form' | 'processing' | 'done'
 
@@ -331,36 +332,38 @@ export function Cases({
       )}
 
       {/* ── CASES TABLE ── */}
-      <section className="panel table-panel">
-        {loading ? (
-          <div style={{ padding: '2rem' }}>Loading cases...</div>
-        ) : cases.length === 0 ? (
-          <div style={{ padding: '2rem', color: '#a1a1aa' }}>No cases available.</div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Case ID</th>
-                <th>Description</th>
-                <th>Status</th>
-                <th>Reported At</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {cases.map((item) => (
-                <tr key={item.case_id} onClick={() => { setCaseId(item.case_id); setView('case') }} style={{ cursor: 'pointer' }}>
-                  <td><strong>{item.case_id}</strong></td>
-                  <td>{item.description || 'N/A'}</td>
-                  <td><Badge tone="slate">{item.status}</Badge></td>
-                  <td className="muted">{new Date(item.reported_at).toLocaleString()}</td>
-                  <td className="arrow">→</td>
+      <BorderGlow glowColor="0 0 20" backgroundColor="#ffffff" colors={['#222222', '#333333', '#111111']} borderRadius={4} glowRadius={15}>
+        <section className="panel table-panel" style={{ border: 'none', boxShadow: 'none' }}>
+          {loading ? (
+            <div style={{ padding: '2rem' }}>Loading cases...</div>
+          ) : cases.length === 0 ? (
+            <div style={{ padding: '2rem', color: '#a1a1aa' }}>No cases available.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Case ID</th>
+                  <th>Description</th>
+                  <th>Status</th>
+                  <th>Reported At</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+              </thead>
+              <tbody>
+                {cases.map((item) => (
+                  <tr key={item.case_id} onClick={() => { setCaseId(item.case_id); setView('case') }} style={{ cursor: 'pointer' }}>
+                    <td><strong>{item.case_id}</strong></td>
+                    <td>{item.description || 'N/A'}</td>
+                    <td><Badge tone="slate">{item.status}</Badge></td>
+                    <td className="muted">{new Date(item.reported_at).toLocaleString()}</td>
+                    <td className="arrow">→</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </section>
+      </BorderGlow>
 
       <style>{`
         @keyframes fadeIn  { from { opacity:0 }              to { opacity:1 } }

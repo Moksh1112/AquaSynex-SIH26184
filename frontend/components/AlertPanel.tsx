@@ -1,9 +1,10 @@
-﻿'use client'
+'use client'
 
 import { PageHeader } from './ui/PageHeader'
 import { Badge } from './ui/Badge'
 import { fetchApi } from '../lib/api'
 import { useState } from 'react'
+import BorderGlow from './BorderGlow'
 
 export function AlertPanel({
   token,
@@ -68,9 +69,10 @@ export function AlertPanel({
         title="Alert Center"
         subtitle="Review, confirm, and route model-generated alerts."
       />
-      <section className="alert-layout">
-        <div className="panel alert-card">
-          <div className="eyebrow" style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+      <section className="alert-layout" style={{ alignItems: 'start' }}>
+        <BorderGlow glowColor="0 0 20" backgroundColor="#ffffff" colors={['#222222', '#333333', '#111111']} borderRadius={4} glowRadius={15}>
+          <div className="panel alert-card" style={{ border: 'none', boxShadow: 'none' }}>
+            <div className="eyebrow" style={{ display: 'flex', gap: '16px', padding: '24px 25px', borderBottom: '1px solid var(--line)', marginBottom: 0 }}>
             <button className={`text-button ${filter === 'ALL' ? '' : 'muted'}`} onClick={(e) => { e.preventDefault(); setFilter('ALL'); }}>ALL</button>
             <button className={`text-button ${filter === 'OPEN' ? '' : 'muted'}`} onClick={(e) => { e.preventDefault(); setFilter('OPEN'); }}>OPEN</button>
             <button className={`text-button ${filter === 'ACKNOWLEDGED' ? '' : 'muted'}`} onClick={(e) => { e.preventDefault(); setFilter('ACKNOWLEDGED'); }}>ACKNOWLEDGED</button>
@@ -78,12 +80,12 @@ export function AlertPanel({
           </div>
 
           {filteredAlerts.length === 0 ? (
-             <div style={{ padding: '2rem', color: '#a1a1aa' }}>No {filter !== 'ALL' ? filter.toLowerCase() : ''} alerts available.</div>
+             <div style={{ padding: '24px 25px', color: '#a1a1aa' }}>No {filter !== 'ALL' ? filter.toLowerCase() : ''} alerts available.</div>
           ) : (
             filteredAlerts.slice(0, 50).map(alert => (
-              <div key={alert.id} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #27272a' }}>
-                <div className="alert-banner" style={{ margin: '0 0 1rem 0' }}>
-                  <span>!</span>
+              <div key={alert.id} style={{ borderBottom: '1px solid var(--line)' }}>
+                <div className={`alert-banner ${alert.status === 'RESOLVED' ? 'resolved' : ''}`} style={{ margin: 0 }}>
+                  <span>{alert.status === 'RESOLVED' ? '✓' : '!'}</span>
                   <div>
                     <Badge tone={alert.priority === 'CRITICAL' ? 'red' : 'amber'}>{alert.priority} ALERT</Badge>
                     <h2
@@ -105,7 +107,7 @@ export function AlertPanel({
                   </div>
                 </div>
 
-                <div className="alert-details" style={{ margin: '0 0 1rem 0' }}>
+                <div className="alert-details" style={{ margin: 0 }}>
                   <div>
                     <span className="eyebrow">Status</span>
                     <strong>{alert.status}</strong>
@@ -130,7 +132,7 @@ export function AlertPanel({
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', padding: '0 24px 24px 25px' }}>
                   {alert.status === 'OPEN' && (
                     <button className="button button-primary" disabled={actingOn === alert.id} onClick={(e) => { e.preventDefault(); updateStatus(alert.id, 'ACKNOWLEDGED'); }}>
                       {actingOn === alert.id ? 'Working...' : 'Acknowledge'}
@@ -145,17 +147,20 @@ export function AlertPanel({
               </div>
             ))
           )}
-        </div>
+          </div>
+        </BorderGlow>
 
-        <div className="panel">
-          <div className="eyebrow">Open alerts</div>
+        <BorderGlow glowColor="0 0 20" backgroundColor="#ffffff" colors={['#222222', '#333333', '#111111']} borderRadius={4} glowRadius={15}>
+          <div className="panel" style={{ border: 'none', boxShadow: 'none' }}>
+            <div className="eyebrow">Open alerts</div>
           <h2>Queue health</h2>
           <div className="queue-number">{alerts.length}</div>
           <p className="muted">Total alerts</p>
           <div className="queue-row"><span>Awaiting review (OPEN)</span><b>{openAlerts}</b></div>
           <div className="queue-row"><span>Acknowledged</span><b>{acknowledgedAlerts}</b></div>
           <div className="queue-row"><span>Resolved</span><b>{resolvedAlerts}</b></div>
-        </div>
+          </div>
+        </BorderGlow>
       </section>
     </>
   )
