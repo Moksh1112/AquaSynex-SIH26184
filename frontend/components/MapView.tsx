@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { PageHeader } from './ui/PageHeader'
 import { Badge } from './ui/Badge'
 import { fetchApi } from '../lib/api'
+import BorderGlow from './BorderGlow'
 
 const MapClient = dynamic(() => import('./MapClient'), {
   ssr: false,
@@ -138,51 +139,68 @@ export function MapView({
            </>
          )}
       </div>
-      <section className="panel map-panel">
-        <div className="map-canvas" style={{ position: 'relative', overflow: 'hidden' }}>
-          {mapMode === 'GLOBAL' && loadingHeatmap ? (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading heatmap data from backend...</div>
-          ) : mapMode === 'CASE' && loadingPrediction ? (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading case prediction from backend...</div>
-          ) : null}
-          <MapClient
-            predictionData={activePredictionData}
-            locationsData={locationsData}
-            selectedAtmId={selectedAtmId}
-          />
-        </div>
-        <div className="map-side" style={{ overflowY: 'auto' }}>
-          <div className="eyebrow">{mapMode === 'CASE' ? 'Case Intelligence' : 'Global Risk View'}</div>
-          <h2>{currentLocations?.length || 0} Matching Locations</h2>
-          {(!currentLocations || currentLocations.length === 0) ? (
-            <div style={{ color: '#a1a1aa', marginTop: '1rem' }}>No locations available for this view.</div>
-          ) : (
-            currentLocations.map((h: any, idx: number) => (
-              <div
-                className="jurisdiction"
-                key={`${h.atm_id}-${idx}`}
-                onClick={() => setSelectedAtmId(h.atm_id)}
-                style={{
-                  cursor: 'pointer',
-                  backgroundColor: selectedAtmId === h.atm_id ? 'rgba(0,0,0,0.05)' : 'transparent',
-                  padding: '10px',
-                  borderRadius: '8px',
-                  marginBottom: '8px',
-                  border: selectedAtmId === h.atm_id ? '1px solid rgba(0,0,0,0.1)' : '1px solid transparent'
-                }}
-              >
-                <span className={`country-dot ${h.risk_level === 'HIGH' ? 'red' : 'amber'}`} />
-                <div>
-                  <strong>{h.atm_id}</strong>
-                  <small style={{ display: 'block' }}>{h.lat}, {h.lng}</small>
-                  <small style={{ display: 'block', color: '#71717a' }}>{h.crime_category}</small>
+      <BorderGlow glowColor="0 0 20" backgroundColor="#ffffff" colors={['#222222', '#333333', '#111111']} borderRadius={4} glowRadius={15}>
+        <section className="panel map-panel" style={{ border: 'none', boxShadow: 'none' }}>
+          <div className="map-canvas" style={{ position: 'relative', overflow: 'hidden' }}>
+            {mapMode === 'GLOBAL' && loadingHeatmap ? (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading heatmap data from backend...</div>
+            ) : mapMode === 'CASE' && loadingPrediction ? (
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(237,237,235,0.8)', zIndex: 10, color: '#333' }}>Loading case prediction from backend...</div>
+            ) : null}
+            <MapClient
+              predictionData={activePredictionData}
+              locationsData={locationsData}
+              selectedAtmId={selectedAtmId}
+            />
+          </div>
+          <div className="map-side" style={{ overflowY: 'auto' }}>
+            <div className="eyebrow">{mapMode === 'CASE' ? 'Case Intelligence' : 'Global Risk View'}</div>
+            <h2>{currentLocations?.length || 0} Matching Locations</h2>
+            {(!currentLocations || currentLocations.length === 0) ? (
+              <div style={{ color: '#a1a1aa', marginTop: '1rem' }}>No locations available for this view.</div>
+            ) : (
+              currentLocations.map((h: any, idx: number) => {
+                const latitude = h.latitude ?? h.lat;
+                const longitude = h.longitude ?? h.lng;
+                const risk = h.risk ?? h.risk_level;
+                const category = h.crime_category;
+                const probability = h.probability ?? h.weight;
+
+                return (
+                <div
+                  className="jurisdiction"
+                  key={`${h.atm_id}-${idx}`}
+                  onClick={() => setSelectedAtmId(h.atm_id)}
+                  style={{
+                    cursor: 'pointer',
+                    backgroundColor: selectedAtmId === h.atm_id ? 'rgba(0,0,0,0.05)' : 'transparent',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                    border: selectedAtmId === h.atm_id ? '1px solid rgba(0,0,0,0.1)' : '1px solid transparent'
+                  }}
+                >
+                  <span className={`country-dot ${risk === 'HIGH' || risk === 'CRITICAL' ? 'red' : 'amber'}`} />
+                  <div>
+                    <strong>{h.atm_id}</strong>
+                    {latitude !== undefined && longitude !== undefined && (
+                      <small style={{ display: 'block' }}>{latitude}, {longitude}</small>
+                    )}
+                    {category && (
+                      <small style={{ display: 'block', color: '#71717a' }}>{category}</small>
+                    )}
+                  </div>
+                  {risk ? (
+                    <Badge tone={risk === 'HIGH' || risk === 'CRITICAL' ? 'red' : 'amber'}>{risk}</Badge>
+                  ) : probability !== undefined ? (
+                    <Badge tone="blue">{(probability * 100).toFixed(1)}%</Badge>
+                  ) : null}
                 </div>
-                <Badge tone={h.risk_level === 'HIGH' ? 'red' : 'amber'}>{h.risk_level || 'N/A'}</Badge>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+              )})
+            )}
+          </div>
+        </section>
+      </BorderGlow>
     </>
   )
 }

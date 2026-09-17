@@ -5,6 +5,7 @@ import { PageHeader } from './ui/PageHeader'
 import { Badge } from './ui/Badge'
 import { FlowEntity } from '../lib/graph-transform'
 import { fetchApi } from '../lib/api'
+import BorderGlow from './BorderGlow'
 
 export function CaseDetail({ 
   token,
@@ -147,129 +148,138 @@ export function CaseDetail({
         </div>
       </div>
       <div className="section-grid">
-        <section className="panel span-2">
-          <div className="panel-head">
-            <div>
-              <div className="eyebrow">Entity graph</div>
-              <h2>Money movement overview</h2>
+        <BorderGlow glowColor="0 0 20" className="span-2" backgroundColor="#ffffff" colors={['#222222', '#333333', '#111111']} borderRadius={4} glowRadius={15}>
+          <section className="panel" style={{ border: 'none', boxShadow: 'none' }}>
+            <div className="panel-head">
+              <div>
+                <div className="eyebrow">Entity graph</div>
+                <h2>Money movement overview</h2>
+              </div>
+              <button className="text-button" onClick={() => setView('trail')}>Open money trail →</button>
             </div>
-            <button className="text-button" onClick={() => setView('trail')}>Open money trail →</button>
-          </div>
-          {loadingGraph ? (
-            <div style={{ padding: '2rem' }}>Loading graph...</div>
-          ) : flow.length === 0 ? (
-            <div style={{ padding: '2rem', color: '#a1a1aa' }}>No graph data available.</div>
-          ) : (
-            <div className="flow">
-              {flow.map((item, i) => (
-                <div className="flow-step" key={item.id + i}>
-                  <div className={`flow-node ${item.tone}`}>
-                    <span>{i === 0 ? 'A' : i === flow.length - 1 ? '?' : '◈'}</span>
+            {loadingGraph ? (
+              <div style={{ padding: '2rem' }}>Loading graph...</div>
+            ) : flow.length === 0 ? (
+              <div style={{ padding: '2rem', color: '#a1a1aa' }}>No graph data available.</div>
+            ) : (
+              <div className="flow">
+                {flow.map((item, i) => (
+                  <div className="flow-step" key={item.id + i}>
+                    <div className={`flow-node ${item.tone}`}>
+                      <span>{i === 0 ? 'A' : i === flow.length - 1 ? '?' : '◈'}</span>
+                    </div>
+                    <div className="eyebrow">{item.label}</div>
+                    <strong>{item.value}</strong>
+                    <span>{item.name}</span>
+                    {i < flow.length - 1 && <div className="flow-line" />}
                   </div>
-                  <div className="eyebrow">{item.label}</div>
-                  <strong>{item.value}</strong>
-                  <span>{item.name}</span>
-                  {i < flow.length - 1 && <div className="flow-line" />}
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </section>
+        </BorderGlow>
+          <hr style={{ borderColor: '#27272a', margin: '2rem 0', gridColumn: 'span 2' }} />
+          <BorderGlow glowColor="0 0 20" className="span-2" backgroundColor="#18181b" colors={['#333333', '#111111', '#555555']} borderRadius={8} glowRadius={20}>
+            <section className="panel" style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}>
+              <div className="panel-head">
+                 <div>
+                   <div className="eyebrow">Documentation</div>
+                   <h2>Evidence Records</h2>
+                 </div>
+              </div>
+            <div style={{ marginBottom: '1.5rem' }}>
+               {loadingEvidence ? (
+                 <div style={{ color: '#a1a1aa' }}>Loading evidence...</div>
+               ) : evidence.length === 0 ? (
+                 <div style={{ color: '#a1a1aa' }}>No evidence attached to this case.</div>
+               ) : (
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {evidence.map(ev => (
+                       <div key={ev.id} style={{ padding: '1rem', background: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                             <strong style={{ color: '#f4f4f5' }}>{ev.title}</strong>
+                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                {!ev.original_filename && <Badge tone="neutral">Metadata Only</Badge>}
+                                {ev.original_filename && (
+                                    <button
+                                      onClick={() => handleDownload(ev.id, ev.original_filename)}
+                                      className="button button-primary"
+                                      style={{ padding: '6px 12px', fontSize: '0.85rem' }}
+                                    >
+                                      Download File
+                                    </button>
+                                )}
+                                <Badge tone="slate">{ev.evidence_type}</Badge>
+                             </div>
+                          </div>
+                          <div style={{ color: '#a1a1aa', fontSize: '0.85rem' }}>
+                             Source: {ev.source || 'Unknown'} • Uploaded by: {ev.created_by} • {new Date(ev.created_at).toLocaleString()}
+                          </div>
+                          {ev.original_filename && (
+                             <div style={{ color: '#a1a1aa', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                                File: {ev.original_filename} {ev.file_size ? `(${Math.round(ev.file_size / 1024)} KB)` : ''}
+                             </div>
+                          )}
+                       </div>
+                    ))}
+                 </div>
+               )}
             </div>
-          )}
 
-          <hr style={{ borderColor: '#27272a', margin: '2rem 0' }} />
-
-          <div className="panel-head">
-             <div>
-               <div className="eyebrow">Documentation</div>
-               <h2>Evidence Records</h2>
-             </div>
-          </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-             {loadingEvidence ? (
-               <div style={{ color: '#a1a1aa' }}>Loading evidence...</div>
-             ) : evidence.length === 0 ? (
-               <div style={{ color: '#a1a1aa' }}>No evidence attached to this case.</div>
-             ) : (
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {evidence.map(ev => (
-                     <div key={ev.id} style={{ padding: '1rem', background: '#18181b', border: '1px solid #27272a', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                           <strong style={{ color: '#f4f4f5' }}>{ev.title}</strong>
-                           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                              {!ev.original_filename && <Badge tone="neutral">Metadata Only</Badge>}
-                              {ev.original_filename && (
-                                <button
-                                  onClick={() => handleDownload(ev.id, ev.original_filename)}
-                                  className="button button-quiet"
-                                  style={{ padding: '4px 8px', fontSize: '0.85rem' }}
-                                >
-                                  Download File
-                                </button>
-                              )}
-                              <Badge tone="slate">{ev.evidence_type}</Badge>
-                           </div>
-                        </div>
-                        <div style={{ color: '#a1a1aa', fontSize: '0.85rem' }}>
-                           Source: {ev.source || 'Unknown'} • Uploaded by: {ev.created_by} • {new Date(ev.created_at).toLocaleString()}
-                        </div>
-                        {ev.original_filename && (
-                           <div style={{ color: '#a1a1aa', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                              File: {ev.original_filename} {ev.file_size ? `(${Math.round(ev.file_size / 1024)} KB)` : ''}
-                           </div>
-                        )}
-                     </div>
-                  ))}
-               </div>
-             )}
-          </div>
-
-          <div style={{ background: '#18181b', padding: '1rem', border: '1px solid #27272a', borderRadius: '8px' }}>
-             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#f4f4f5' }}>Attach New Evidence</h3>
-             <form onSubmit={handleAddEvidence} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <input
-                   placeholder="Title (e.g. Subpoena Docs)"
-                   value={newEvidence.title}
-                   onChange={e => setNewEvidence({...newEvidence, title: e.target.value})}
-                   style={{ flexGrow: 1, minWidth: '200px', background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '4px' }}
-                   required
-                />
-                <input
-                   placeholder="Source (e.g. HDFC Bank)"
-                   value={newEvidence.source}
-                   onChange={e => setNewEvidence({...newEvidence, source: e.target.value})}
-                   style={{ flexGrow: 1, minWidth: '200px', background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '4px' }}
-                />
-                <select
-                   value={newEvidence.type}
-                   onChange={e => setNewEvidence({...newEvidence, type: e.target.value})}
-                   style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '4px' }}
-                >
-                   <option value="TRANSACTION_LOG">Transaction Log</option>
-                   <option value="POLICE_REPORT">Police Report</option>
-                   <option value="VIDEO">Video / CCTV</option>
-                   <option value="OTHER">Other</option>
-                </select>
-                <div style={{ width: '100%', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ background: '#18181b', padding: '1rem', border: '1px solid #27272a', borderRadius: '8px' }}>
+               <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#f4f4f5' }}>Attach New Evidence</h3>
+               <form onSubmit={handleAddEvidence} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                   <input
-                     id="evidence-file"
-                     type="file"
-                     onChange={e => setFile(e.target.files?.[0] || null)}
-                     style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.4rem', borderRadius: '4px', flexGrow: 1 }}
+                     placeholder="Title (e.g. Subpoena Docs)"
+                     value={newEvidence.title}
+                     onChange={e => setNewEvidence({...newEvidence, title: e.target.value})}
+                     style={{ flexGrow: 1, minWidth: '200px', background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '4px' }}
+                     required
                   />
-                  <button type="submit" className="button button-primary" disabled={uploading}>
-                    {uploading ? 'Uploading...' : 'Attach'}
-                  </button>
-                </div>
-             </form>
+                  <input
+                     placeholder="Source (e.g. HDFC Bank)"
+                     value={newEvidence.source}
+                     onChange={e => setNewEvidence({...newEvidence, source: e.target.value})}
+                     style={{ flexGrow: 1, minWidth: '200px', background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '4px' }}
+                  />
+                  <select
+                     value={newEvidence.type}
+                     onChange={e => setNewEvidence({...newEvidence, type: e.target.value})}
+                     style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.5rem', borderRadius: '4px' }}
+                  >
+                     <option value="TRANSACTION_LOG">Transaction Log</option>
+                     <option value="POLICE_REPORT">Police Report</option>
+                     <option value="VIDEO">Video / CCTV</option>
+                     <option value="OTHER">Other</option>
+                  </select>
+                  <div style={{ width: '100%', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <input
+                       id="evidence-file"
+                       type="file"
+                       onChange={e => setFile(e.target.files?.[0] || null)}
+                       style={{ background: '#27272a', color: 'white', border: '1px solid #3f3f46', padding: '0.4rem', borderRadius: '4px', flexGrow: 1 }}
+                    />
+                    <button type="submit" className="button button-primary" disabled={uploading}>
+                      {uploading ? 'Uploading...' : 'Attach'}
+                    </button>
+                  </div>
+               </form>
+            </div>
+            </section>
+          </BorderGlow>
+        <div className="span-2" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <div style={{ width: '100%', maxWidth: '600px' }}>
+            <BorderGlow glowColor="0 0 20" backgroundColor="#ffffff" colors={['#222222', '#333333', '#111111']} borderRadius={4} glowRadius={15}>
+              <section className="panel" style={{ border: 'none', boxShadow: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <div className="eyebrow" style={{ width: '100%', marginBottom: '0.5rem' }}>Actions</div>
+                <h2 style={{ width: '100%', marginBottom: '1.5rem' }}>Investigator Tools</h2>
+                <button className="button button-primary full" onClick={() => setView('prediction')}>View prediction rationale</button>
+                <div style={{ height: '1rem' }} />
+                <button className="button button-quiet full" onClick={() => setView('alerts')}>View alerts</button>
+              </section>
+            </BorderGlow>
           </div>
-        </section>
-        <section className="panel">
-          <div className="eyebrow">Actions</div>
-          <h2>Investigator Tools</h2>
-          <br/>
-          <button className="button button-primary full" onClick={() => setView('prediction')}>View prediction rationale</button>
-          <br/><br/>
-          <button className="button button-quiet full" onClick={() => setView('alerts')}>View alerts</button>
-        </section>
+        </div>
       </div>
     </>
   )

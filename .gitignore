@@ -33,3 +33,5 @@ ml/data/backup/
 
 # Scratch scripts
 scratch/
+db_backup/
+AquaSynex_DB.backup
