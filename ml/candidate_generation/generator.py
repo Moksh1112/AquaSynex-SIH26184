@@ -1,4 +1,4 @@
-﻿import os
+import os
 import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -26,6 +26,10 @@ def generate_candidates_csv(case_id: str, k_ring: int = 2) -> list:
     if case_comp.empty:
         return []
 
+    wds['timestamp'] = pd.to_datetime(wds['timestamp'])
+    current_time = pd.to_datetime(case_comp.iloc[0]['timestamp'])
+    suspect_acc = case_comp.iloc[0]['account_id']
+
     known_fraud_wd = wds[(wds['case_id'] == case_id) & (wds['is_fraud'] == 1)]
     known_fraud_atm_id = None
     if not known_fraud_wd.empty:
@@ -33,6 +37,15 @@ def generate_candidates_csv(case_id: str, k_ring: int = 2) -> list:
 
     center_lat = 19.076
     center_lon = 72.877
+
+    # Non-leaking center: Suspect's last known withdrawal ATM
+    past_wds = wds[(wds['account_id'] == suspect_acc) & (wds['timestamp'] < current_time)].sort_values('timestamp')
+    if not past_wds.empty:
+        last_wd_atm_id = past_wds.iloc[-1]['atm_id']
+        last_atm = atms[atms['atm_id'] == last_wd_atm_id]
+        if not last_atm.empty:
+            center_lat = last_atm.iloc[0]['latitude']
+            center_lon = last_atm.iloc[0]['longitude']
 
     center_h3 = lat_lon_to_h3(center_lat, center_lon, resolution=8)
     nearby_cells = get_nearby_cells(center_h3, k=k_ring)
@@ -88,9 +101,17 @@ def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
     center_lat = 19.076
     center_lon = 72.877
 
-    if known_atm:
-        center_lat = known_atm.latitude
-        center_lon = known_atm.longitude
+    # Non-leaking center: Suspect's last known withdrawal ATM
+    past_wd = db.query(Withdrawal).filter(
+        Withdrawal.account_id == comp.account_id,
+        Withdrawal.timestamp < comp.reported_at
+    ).order_by(Withdrawal.timestamp.desc()).first()
+    
+    if past_wd:
+        past_atm = db.query(ATM).filter(ATM.atm_id == past_wd.atm_id).first()
+        if past_atm:
+            center_lat = past_atm.latitude
+            center_lon = past_atm.longitude
 
     from sqlalchemy import text
     point = f'SRID=4326;POINT({center_lon} {center_lat})'
