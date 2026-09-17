@@ -252,7 +252,7 @@ export default function Page() {
         onClick={() => setIsSidebarOpen(false)}
         aria-hidden="true"
       />
-      <aside className={`sidebar unfoldable ${isSidebarOpen ? 'open' : ''}`}>
+      <aside className={`sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="brand">
           <img src="/logo.png" alt="Logo" style={{ width: 32, height: 32, marginRight: 10, borderRadius: '50%', objectFit: 'cover' }} />
           <div className="brand-text"><strong>MoneyTrail</strong><span>FINANCIAL INTELLIGENCE</span></div>
