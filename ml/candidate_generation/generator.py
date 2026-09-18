@@ -13,6 +13,50 @@ def get_data_dir() -> str:
     project_root = os.path.dirname(os.path.dirname(current_dir))
     return os.path.join(project_root, "ml", "data")
 
+def apply_distance_bands(candidates_list: list) -> list:
+    """
+    Applies distance-band sampling to a list of candidates.
+    Candidates must be dictionaries containing at least 'atm_id' and 'dist' (in km).
+    """
+    if not candidates_list:
+        return []
+        
+    df = pd.DataFrame(candidates_list)
+    df = df.sort_values(by='dist').drop_duplicates(subset=['atm_id'])
+    
+    bands = [
+        (0, 5, 80),
+        (5, 10, 50),
+        (10, 15, 40),
+        (15, 20, 20),
+        (20, 25, 10)
+    ]
+    
+    selected_dfs = []
+    selected_ids = set()
+    
+    for min_d, max_d, max_count in bands:
+        if min_d == 0:
+            band_df = df[(df['dist'] >= 0) & (df['dist'] <= max_d)]
+        else:
+            band_df = df[(df['dist'] > min_d) & (df['dist'] <= max_d)]
+            
+        band_selected = band_df.head(max_count)
+        selected_dfs.append(band_selected)
+        selected_ids.update(band_selected['atm_id'].tolist())
+        
+    final_df = pd.concat(selected_dfs) if selected_dfs else pd.DataFrame(columns=df.columns)
+    
+    if len(final_df) < 200:
+        remaining = df[~df['atm_id'].isin(selected_ids)]
+        needed = 200 - len(final_df)
+        if needed > 0 and not remaining.empty:
+            fill_df = remaining.head(needed)
+            final_df = pd.concat([final_df, fill_df])
+            
+    final_df = final_df.sort_values(by='dist')
+    return final_df.to_dict('records')
+
 def generate_candidates_csv(case_id: str, k_ring: int = 2) -> list:
     data_dir = get_data_dir()
     try:
@@ -60,14 +104,8 @@ def generate_candidates_csv(case_id: str, k_ring: int = 2) -> list:
             lambda row: calculate_distance(center_lat, center_lon, row['latitude'], row['longitude']), axis=1)
     
     candidate_atms = atms[atms['dist'] <= 25.0].copy()
-
-    candidate_atms = candidate_atms.sort_values(by='dist').head(200)
-
-
-
-    candidate_atms = candidate_atms.sort_values(by='dist').drop_duplicates(subset=['atm_id'])
-
-    return candidate_atms.to_dict('records')
+    cands_list = candidate_atms.to_dict('records')
+    return apply_distance_bands(cands_list)
 
 def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
     """
@@ -104,7 +142,7 @@ def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
         func.ST_DistanceSphere(text(f"ST_GeomFromEWKT('{point}')"), ATM.location).label('dist')
     ).filter(
         text(f"ST_DWithin(location::geography, ST_GeographyFromText('{point}'), 25000)")
-    ).order_by('dist').limit(200)
+    ).order_by('dist')
 
     try:
         results = query.all()
@@ -123,9 +161,7 @@ def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
             'atm_id': atm.atm_id,
             'latitude': atm.latitude,
             'longitude': atm.longitude,
-            'dist': dist
+            'dist': dist / 1000.0  # standardize to km for distance bands
         })
 
-
-
-    return candidates
+    return apply_distance_bands(candidates)
