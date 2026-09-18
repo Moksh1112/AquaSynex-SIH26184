@@ -1,4 +1,4 @@
-﻿import os
+import os
 import pandas as pd
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import aliased
@@ -56,8 +56,31 @@ def build_features_for_case(case_id: str, candidate_atms: list, comps, atms, txs
 
     base_features = {**tx_feats, **temp_feats, **beh_feats, **graph_feats}
 
-    rows = []
     df_cands = pd.DataFrame(candidate_atms)
+
+    cand_atm_ids = df_cands['atm_id'].tolist()
+    past_global_wds = wds[(wds['timestamp'] < current_time) & (wds['case_id'] != case_id) & (wds['atm_id'].isin(cand_atm_ids))]
+    
+    atm_stats = {}
+    for atm_id in cand_atm_ids:
+        atm_wds = past_global_wds[past_global_wds['atm_id'] == atm_id]
+        wd_count = len(atm_wds)
+        fraud_count = len(atm_wds[atm_wds['is_fraud'] == 1])
+        fraud_rate = fraud_count / (wd_count + 1.0)
+        
+        days_since = -1.0
+        if not atm_wds.empty:
+            last_time = atm_wds['timestamp'].max()
+            days_since = (current_time - last_time).total_seconds() / 86400.0
+            
+        atm_stats[atm_id] = {
+            'atm_global_withdrawal_count': wd_count,
+            'atm_global_fraud_count': fraud_count,
+            'atm_global_fraud_rate': fraud_rate,
+            'atm_days_since_last_activity': days_since
+        }
+
+    rows = []
 
     for atm_cand in candidate_atms:
         row = {'case_id': case_id, 'atm_id': atm_cand['atm_id']}
@@ -67,6 +90,7 @@ def build_features_for_case(case_id: str, candidate_atms: list, comps, atms, txs
 
         row.update(base_features)
         row.update(sp_feats)
+        row.update(atm_stats[atm_cand['atm_id']])
         rows.append(row)
 
     df = pd.DataFrame(rows)

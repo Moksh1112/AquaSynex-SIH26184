@@ -57,7 +57,21 @@ def generate_synthetic_data(data_dir: str):
         acc_ids = df_accounts['account_id'].values
     
     df_accounts.loc[df_accounts['account_id'] == 'ACC-09999', 'risk_score'] = 0.95
+    
+    # Assign home locations to accounts (same distribution as ATMs)
+    acc_lats = np.random.normal(19.076, 0.05, len(df_accounts))
+    acc_lons = np.random.normal(72.877, 0.05, len(df_accounts))
+    df_accounts['home_lat'] = acc_lats
+    df_accounts['home_lon'] = acc_lons
+    
     df_accounts.to_csv(os.path.join(data_dir, "accounts.csv"), index=False)
+    
+    # Pre-calculate ATM coordinates for fast distance calculation
+    atm_coords = df_atms[['latitude', 'longitude']].values
+    
+    # Designate 10% of ATMs as 'fraud hubs'
+    num_hubs = int(num_atms * 0.10)
+    fraud_hubs = set(np.random.choice(atm_ids, num_hubs, replace=False))
     
     # 3. Transactions (Background)
     num_txs = 600000
@@ -86,9 +100,23 @@ def generate_synthetic_data(data_dir: str):
     # 4. Withdrawals (Background)
     num_wds = 150000
     wd_accs = np.random.choice(acc_ids, num_wds)
-    wd_atms = np.random.choice(atm_ids, num_wds)
-    wd_amounts = np.random.uniform(100, 5000, num_wds)
     
+    # Assign legitimate ATMs close to account homes (within ~2km)
+    wd_atms = []
+    acc_dict = df_accounts.set_index('account_id').to_dict('index')
+    
+    print("Assigning legitimate withdrawals to nearby ATMs...")
+    # Fast assignment: pick a random ATM, if it's too far, pick another. Or just add noise to home coords and find nearest.
+    for acc in wd_accs:
+        # Add small noise (approx 1-2km) to home
+        lat = acc_dict[acc]['home_lat'] + np.random.normal(0, 0.01)
+        lon = acc_dict[acc]['home_lon'] + np.random.normal(0, 0.01)
+        # Find nearest ATM
+        dists = (atm_coords[:, 0] - lat)**2 + (atm_coords[:, 1] - lon)**2
+        nearest_idx = np.argmin(dists)
+        wd_atms.append(atm_ids[nearest_idx])
+        
+    wd_amounts = np.random.uniform(100, 5000, num_wds)
     offsets_wd = np.random.randint(0, 30 * 24 * 3600, num_wds)
     wd_timestamps = pd.to_datetime(base_ts - offsets_wd, unit='s')
     
@@ -150,7 +178,31 @@ def generate_synthetic_data(data_dir: str):
                 tx_id_ctr += 1
                 
             # Cashout WD
-            fraud_atm = "ATM-0184" if case_id == "C10231" else np.random.choice(atm_ids)
+            # Fraudster travels 2-20km away from victim's home. 
+            # 80% chance they use a known 'fraud hub'.
+            h_lat = acc_dict[acc]['home_lat']
+            h_lon = acc_dict[acc]['home_lon']
+            
+            # Distance offset (approx 2-20km)
+            angle = np.random.uniform(0, 2 * np.pi)
+            dist_deg = np.random.uniform(0.02, 0.18) 
+            f_lat = h_lat + dist_deg * np.sin(angle)
+            f_lon = h_lon + dist_deg * np.cos(angle)
+            
+            # Find closest ATM to this fraud target location
+            dists = (atm_coords[:, 0] - f_lat)**2 + (atm_coords[:, 1] - f_lon)**2
+            
+            if random.random() < 0.80:
+                # Restrict to fraud hubs
+                hub_mask = np.isin(atm_ids, list(fraud_hubs))
+                dists[~hub_mask] = np.inf
+                
+            fraud_idx = np.argmin(dists)
+            fraud_atm = atm_ids[fraud_idx]
+            
+            if case_id == "C10231":
+                fraud_atm = "ATM-0184"
+                
             fraud_amt = round(random.uniform(20000, 100000), 2)
             fraud_wds.append({
                 'withdrawal_id': f"WD-{wd_id_ctr:07d}",

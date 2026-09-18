@@ -30,16 +30,13 @@ def generate_candidates_csv(case_id: str, k_ring: int = 2) -> list:
     current_time = pd.to_datetime(case_comp.iloc[0]['timestamp'])
     suspect_acc = case_comp.iloc[0]['account_id']
 
-    known_fraud_wd = wds[(wds['case_id'] == case_id) & (wds['is_fraud'] == 1)]
-    known_fraud_atm_id = None
-    if not known_fraud_wd.empty:
-        known_fraud_atm_id = known_fraud_wd.iloc[0]['atm_id']
+
 
     center_lat = 19.076
     center_lon = 72.877
 
-    # Non-leaking center: Suspect's last known withdrawal ATM
-    past_wds = wds[(wds['account_id'] == suspect_acc) & (wds['timestamp'] < current_time)].sort_values('timestamp')
+    # Non-leaking center: Suspect's last known legitimate withdrawal ATM
+    past_wds = wds[(wds['account_id'] == suspect_acc) & (wds['timestamp'] < current_time) & (wds['is_fraud'] != 1)].sort_values('timestamp')
     if not past_wds.empty:
         last_wd_atm_id = past_wds.iloc[-1]['atm_id']
         last_atm = atms[atms['atm_id'] == last_wd_atm_id]
@@ -58,24 +55,15 @@ def generate_candidates_csv(case_id: str, k_ring: int = 2) -> list:
     candidate_atms['dist'] = candidate_atms.apply(
         lambda row: calculate_distance(center_lat, center_lon, row['latitude'], row['longitude']), axis=1)
 
-    if len(candidate_atms) < 20:
-        if 'dist' not in atms.columns:
-            atms['dist'] = atms.apply(
-                lambda row: calculate_distance(center_lat, center_lon, row['latitude'], row['longitude']), axis=1)
-        candidate_atms = atms[atms['dist'] <= 10.0].copy()
-    else:
-        if 'dist' not in atms.columns:
-             atms['dist'] = atms.apply(
-                lambda row: calculate_distance(center_lat, center_lon, row['latitude'], row['longitude']), axis=1)
+    if 'dist' not in atms.columns:
+        atms['dist'] = atms.apply(
+            lambda row: calculate_distance(center_lat, center_lon, row['latitude'], row['longitude']), axis=1)
+    
+    candidate_atms = atms[atms['dist'] <= 25.0].copy()
 
-    candidate_atms = candidate_atms.sort_values(by='dist').head(50)
+    candidate_atms = candidate_atms.sort_values(by='dist').head(200)
 
-    if known_fraud_atm_id and known_fraud_atm_id not in candidate_atms['atm_id'].values:
-        known_atm_row = atms[atms['atm_id'] == known_fraud_atm_id].copy()
-        if not known_atm_row.empty:
-            if len(candidate_atms) >= 50:
-                candidate_atms = candidate_atms.iloc[:-1]
-            candidate_atms = pd.concat([candidate_atms, known_atm_row])
+
 
     candidate_atms = candidate_atms.sort_values(by='dist').drop_duplicates(subset=['atm_id'])
 
@@ -89,22 +77,16 @@ def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
     if not comp:
         return []
 
-    known_fraud_wd = db.query(Withdrawal).filter(
-        Withdrawal.case_id == case_id,
-        Withdrawal.is_fraud == 1
-    ).first()
 
-    known_atm = None
-    if known_fraud_wd:
-        known_atm = db.query(ATM).filter(ATM.atm_id == known_fraud_wd.atm_id).first()
 
     center_lat = 19.076
     center_lon = 72.877
 
-    # Non-leaking center: Suspect's last known withdrawal ATM
+    # Non-leaking center: Suspect's last known legitimate withdrawal ATM
     past_wd = db.query(Withdrawal).filter(
         Withdrawal.account_id == comp.account_id,
-        Withdrawal.timestamp < comp.reported_at
+        Withdrawal.timestamp < comp.reported_at,
+        Withdrawal.is_fraud != 1
     ).order_by(Withdrawal.timestamp.desc()).first()
     
     if past_wd:
@@ -116,13 +98,13 @@ def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
     from sqlalchemy import text
     point = f'SRID=4326;POINT({center_lon} {center_lat})'
 
-    # 10000 meters = 10km radius
+    # 25000 meters = 25km radius
     query = db.query(
         ATM,
         func.ST_DistanceSphere(text(f"ST_GeomFromEWKT('{point}')"), ATM.location).label('dist')
     ).filter(
-        text(f"ST_DWithin(location::geography, ST_GeographyFromText('{point}'), 10000)")
-    ).order_by('dist').limit(50)
+        text(f"ST_DWithin(location::geography, ST_GeographyFromText('{point}'), 25000)")
+    ).order_by('dist').limit(200)
 
     try:
         results = query.all()
@@ -144,14 +126,6 @@ def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
             'dist': dist
         })
 
-    if known_atm and known_atm.atm_id not in [c['atm_id'] for c in candidates]:
-        if len(candidates) >= 50:
-            candidates.pop()
-        candidates.append({
-            'atm_id': known_atm.atm_id,
-            'latitude': known_atm.latitude,
-            'longitude': known_atm.longitude,
-            'dist': 0.0
-        })
+
 
     return candidates

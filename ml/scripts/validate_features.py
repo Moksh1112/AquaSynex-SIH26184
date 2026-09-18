@@ -1,16 +1,17 @@
 import pandas as pd
-from ml.candidate_generation.generator import generate_candidates
-from ml.features.feature_builder import build_features
+from ml.candidate_generation.generator import generate_candidates_csv
+from ml.features.feature_builder import build_features_for_case, load_datasets
 
 def test_features():
     print("--- VALIDATING FEATURE ENGINEERING ---")
     case_id = "C10231"
     
     print(f"Generating candidates for {case_id}...")
-    candidates = generate_candidates(case_id)
+    candidates = generate_candidates_csv(case_id)
     
     print(f"Building features for {len(candidates)} candidates...")
-    df = build_features(case_id, candidates)
+    comps, atms, txs, wds = load_datasets()
+    df = build_features_for_case(case_id, candidates, comps, atms, txs, wds)
     
     print("\n--- RESULTS ---")
     print(f"Shape: {df.shape}")

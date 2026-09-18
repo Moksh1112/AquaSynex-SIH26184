@@ -1,4 +1,5 @@
 import os
+import logging
 import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import GroupShuffleSplit
@@ -102,7 +103,7 @@ def train_model():
     logger.info(f"Confusion Matrix:\n{confusion_matrix(y_test, y_pred)}")
 
     data_dir = get_data_dir()
-    artifacts_dir = os.path.join(os.path.dirname(data_dir), "artifacts", "revised_model")
+    artifacts_dir = os.path.join(os.path.dirname(data_dir), "artifacts")
     os.makedirs(artifacts_dir, exist_ok=True)
 
     model_path = os.path.join(artifacts_dir, "xgb_candidate_model.json")

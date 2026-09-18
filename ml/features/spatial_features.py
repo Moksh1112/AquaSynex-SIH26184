@@ -7,8 +7,8 @@ def extract_spatial_features(atm_row: pd.Series, suspect_acc: str, wds: pd.DataF
     
     features = {}
     
-    # Identify the actual case center (suspect's last known withdrawal ATM)
-    past_wds = wds[(wds['account_id'] == suspect_acc) & (wds['timestamp'] < current_time)]
+    # Identify the actual case center (suspect's last known legitimate withdrawal ATM)
+    past_wds = wds[(wds['account_id'] == suspect_acc) & (wds['timestamp'] < current_time) & (wds['is_fraud'] != 1)]
     
     center_lat = 19.076  # Default fallback
     center_lon = 72.877
