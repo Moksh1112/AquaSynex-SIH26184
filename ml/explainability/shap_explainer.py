@@ -64,19 +64,29 @@ def explain_prediction(prediction_data):
         risk_str = "high risk" if prob > 0.5 else "predicted"
         explanations.append(f"Top candidate ({atm_id}) has a {risk_str} probability of {prob*100:.1f}%.")
         
-        # Top 3 features pushing the prediction higher for the top candidate
+        # Top 3 features driving the prediction (by magnitude)
         top_cand_shap = shap_vals_target[0]
-        # Sort indices by shap value descending
-        top_indices = np.argsort(top_cand_shap)[::-1][:3]
+        # Sort indices by absolute shap value descending
+        top_indices = np.argsort(np.abs(top_cand_shap))[::-1][:3]
         
         explanations.append("Top factors driving this risk:")
         for idx in top_indices:
             feat_name = feature_cols[idx]
             feat_val = X.iloc[0, idx]
             shap_val = top_cand_shap[idx]
-            if shap_val > 0.01:
-                friendly_name = feat_name.replace('_', ' ').title()
-                explanations.append(f"- {friendly_name} (Value: {feat_val:.2f})")
+            
+            if abs(shap_val) > 0.01:
+                direction = "positively" if shap_val > 0 else "negatively"
+                
+                if feat_name == "atm_global_fraud_rate":
+                    explanations.append(f"- Historical fraud rate contributed {direction} to the score. (Value: {feat_val:.2f})")
+                elif feat_name in ["recent_activity_score", "atm_days_since_last_activity"]:
+                    explanations.append(f"- Recent activity contributed {direction} to the score. (Value: {feat_val:.2f})")
+                elif feat_name == "number_of_nearby_atms":
+                    explanations.append(f"- Spatial density contributed {direction} to the score. (Value: {feat_val:.2f})")
+                else:
+                    friendly_name = feat_name.replace('_', ' ').title()
+                    explanations.append(f"- {friendly_name} contributed {direction} to the score. (Value: {feat_val:.2f})")
                 
         if len(explanations) == 2:
             explanations.append("- Historical behavior patterns")

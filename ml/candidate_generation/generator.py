@@ -7,6 +7,7 @@ from app.models.withdrawal import Withdrawal
 from app.models.atm import ATM
 from spatial.h3.h3_service import lat_lon_to_h3, get_nearby_cells
 from spatial.geo.distance import calculate_distance
+from app.models.account import Account
 
 def get_data_dir() -> str:
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -121,11 +122,15 @@ def generate_candidates(db: Session, case_id: str, k_ring: int = 2) -> list:
     center_lon = 72.877
 
     # Non-leaking center: Suspect's last known legitimate withdrawal ATM
-    past_wd = db.query(Withdrawal).filter(
-        Withdrawal.account_id == comp.account_id,
-        Withdrawal.timestamp < comp.reported_at,
-        Withdrawal.is_fraud != 1
-    ).order_by(Withdrawal.timestamp.desc()).first()
+    account = db.query(Account).filter(Account.account_number == comp.account_id).first()
+    
+    past_wd = None
+    if account:
+        past_wd = db.query(Withdrawal).filter(
+            Withdrawal.account_id == account.id,
+            Withdrawal.timestamp < comp.reported_at,
+            Withdrawal.is_fraud != 1
+        ).order_by(Withdrawal.timestamp.desc()).first()
     
     if past_wd:
         past_atm = db.query(ATM).filter(ATM.atm_id == past_wd.atm_id).first()

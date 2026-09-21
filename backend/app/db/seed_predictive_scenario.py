@@ -23,7 +23,7 @@ def seed_future_transactions(case_id: str):
         # Ensure base accounts and ATM exist
         atm = db.query(ATM).filter(ATM.atm_id == "ATM-MUM-02").first()
         if not atm:
-            atm = ATM(atm_id="ATM-MUM-02", latitude=19.0810, longitude=72.8820, address="Sakinaka, Mumbai")
+            atm = ATM(atm_id="ATM-MUM-02", latitude=19.0810, longitude=72.8820, address="Sakinaka, Mumbai", location="SRID=4326;POINT(72.8820 19.0810)")
             db.add(atm)
             db.flush()
             

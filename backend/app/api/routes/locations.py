@@ -15,7 +15,7 @@ class ATMResponse(BaseModel):
     atm_id: str
     latitude: float
     longitude: float
-    address: str
+    address: Optional[str] = None
 
 @router.get("/locations", response_model=List[ATMResponse])
 def get_locations(db: Session = Depends(deps.get_db)):

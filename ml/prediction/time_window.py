@@ -6,7 +6,37 @@ def get_data_dir() -> str:
     project_root = os.path.dirname(os.path.dirname(current_dir))
     return os.path.join(project_root, "ml", "data")
 
-def predict_time_window(case_id: str) -> str:
+def predict_time_window(case_id: str, db=None) -> str:
+    if db:
+        from app.models import Complaint, Transaction, Withdrawal, Account
+        from sqlalchemy import func
+        case_comp = db.query(Complaint).filter(Complaint.case_id == case_id).first()
+        if case_comp:
+            suspect_acc_number = case_comp.account_id
+            account = db.query(Account).filter(Account.account_number == suspect_acc_number).first()
+            if account:
+                suspect_acc = account.id
+            
+            # Check withdrawals
+            wds = db.query(Withdrawal).filter(Withdrawal.account_id == suspect_acc).all()
+            if wds:
+                hours = [w.timestamp.hour for w in wds if w.timestamp]
+                if hours:
+                    hour = max(set(hours), key=hours.count)
+                    return f"{hour:02d}:00-{(hour+1)%24:02d}:00"
+                    
+            # Fallback to transactions
+            txs = db.query(Transaction).filter(
+                (Transaction.sender_account_id == suspect_acc) | 
+                (Transaction.receiver_account_id == suspect_acc)
+            ).all()
+            if txs:
+                hours = [t.timestamp.hour for t in txs if t.timestamp]
+                if hours:
+                    hour = max(set(hours), key=hours.count)
+                    return f"{hour:02d}:00-{(hour+1)%24:02d}:00"
+                    
+    # Fallback to CSV
     data_dir = get_data_dir()
     try:
         comps = pd.read_csv(os.path.join(data_dir, "complaints.csv"), dtype={'case_id': str})

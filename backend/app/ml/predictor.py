@@ -61,7 +61,7 @@ class RealPredictor(Predictor):
         artifacts_dir = os.path.join(os.path.dirname(data_dir), "artifacts")
         model_path = os.path.join(artifacts_dir, "xgb_candidate_model.json")
         
-        time_window = predict_time_window(case_id)
+        time_window = predict_time_window(case_id, db=db)
         
         fallback_response = PredictResponse(
             case_id=case_id,
@@ -103,7 +103,17 @@ class RealPredictor(Predictor):
         for cand in ranked_list[:5]:
             atm_id = str(cand['atm_id'])
             prob = float(cand['probability'])
-            risk_label = "HIGH" if prob > 0.5 else "LOW"
+            
+            # Treat probability as a Risk Score. Base rate is ~0.5%.
+            # Score >= 50% is highly anomalous (HIGH).
+            # Score >= 5% is 10x the base rate (MEDIUM).
+            if prob >= 0.50:
+                risk_label = "HIGH"
+            elif prob >= 0.05:
+                risk_label = "MEDIUM"
+            else:
+                risk_label = "LOW"
+                
             lat, lon = coords_map.get(atm_id, (0.0, 0.0))
             
             predictions.append(PredictionItem(
@@ -115,7 +125,13 @@ class RealPredictor(Predictor):
                 risk=risk_label
             ))
             
-        overall_risk = "HIGH" if predictions and predictions[0].risk == "HIGH" else "LOW"
+        # Overall case risk is the highest risk of its Top-5 candidates
+        overall_risk = "LOW"
+        if predictions:
+            if any(p.risk == "HIGH" for p in predictions):
+                overall_risk = "HIGH"
+            elif any(p.risk == "MEDIUM" for p in predictions):
+                overall_risk = "MEDIUM"
         
         return PredictResponse(
             case_id=case_id,

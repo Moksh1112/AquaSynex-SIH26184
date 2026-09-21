@@ -58,9 +58,7 @@ export function PredictionPanel({
   if (isUnknown) {
     dynamicSentence = 'Insufficient data to generate a reliable likelihood of suspicious cash-out activity.';
   } else {
-    const locText = selectedCandidate?.atm_id ? ` at ${selectedCandidate.atm_id}` : '';
-    const timeText = predictionData.time_window ? ` during ${predictionData.time_window}` : ' in the predicted window';
-    dynamicSentence = `Current signals indicate a ${likelihoodText} likelihood of suspicious cash-out activity${locText}${timeText}.`;
+    dynamicSentence = "Strong historical, transactional and spatial signals indicate elevated cash-out risk.";
   }
 
   return (

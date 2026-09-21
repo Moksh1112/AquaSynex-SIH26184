@@ -75,8 +75,8 @@ def seed_db():
         db.flush()
 
         # 6. ATMs (Cash-out locations)
-        atm1 = ATM(atm_id="ATM-MUM-01", latitude=19.0760, longitude=72.8777, address="Andheri East, Mumbai")
-        atm2 = ATM(atm_id="ATM-MUM-02", latitude=19.0810, longitude=72.8820, address="Sakinaka, Mumbai")
+        atm1 = ATM(atm_id="ATM-MUM-01", latitude=19.0760, longitude=72.8777, address="Andheri East, Mumbai", location="SRID=4326;POINT(72.8777 19.0760)")
+        atm2 = ATM(atm_id="ATM-MUM-02", latitude=19.0810, longitude=72.8820, address="Sakinaka, Mumbai", location="SRID=4326;POINT(72.8820 19.0810)")
         db.add_all([atm1, atm2])
         db.flush()
 
@@ -148,6 +148,11 @@ def seed_db():
                           latitude=19.1189, longitude=72.9050,
                           jurisdiction_code="MH_MUMBAI",
                           address="Powai, Mumbai, Maharashtra"),
+            PoliceStation(station_id="PS-MUM-VASHI",
+                          station_name="Vashi Police Station",
+                          latitude=19.3450, longitude=72.9450,
+                          jurisdiction_code="MH_NAVI_MUMBAI",
+                          address="Vashi, Navi Mumbai, Maharashtra"),
         ]
         db.add_all(stations)
         db.commit()
