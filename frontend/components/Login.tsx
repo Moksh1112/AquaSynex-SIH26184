@@ -33,7 +33,7 @@ export function Login({ setToken }: { setToken: (t: string) => void }) {
       }
       const data = await res.json()
       setToken(data.access_token)
-    } catch(err: any) { 
+    } catch (err: any) {
       if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
         setError('Network error: Unable to connect to backend')
       } else {
@@ -46,7 +46,7 @@ export function Login({ setToken }: { setToken: (t: string) => void }) {
   return (
     <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: '#09090b', color: 'white' }}>
       <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '2rem', border: '1px solid #27272a', borderRadius: '8px' }}>
-        <h2>Argus Login</h2>
+        <h2>MoneyTrail Login</h2>
         <input style={{ padding: '0.5rem', background: '#18181b', color: 'white', border: '1px solid #3f3f46', borderRadius: '4px' }} value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" />
         <input style={{ padding: '0.5rem', background: '#18181b', color: 'white', border: '1px solid #3f3f46', borderRadius: '4px' }} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
         {error && <div style={{ color: 'red' }}>{error}</div>}
